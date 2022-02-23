@@ -19,6 +19,7 @@ export default class TextShape extends BaseShape<TextProperties> {
     name: string;
     movePoint: point;
     rectBounding: InstanceType<typeof RectShape>;
+    prevText: string;
     constructor(userOptions: TextProperties);
     draw(context: CanvasRenderingContext2D, ignoreCache?: boolean): void;
     initPending(ctx: CanvasRenderingContext2D, point: newPoint, events: EventHub, translatePosition?: {

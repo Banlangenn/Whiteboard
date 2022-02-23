@@ -43,14 +43,16 @@ function createConfig() {
 		plugins: [
 			tsPlugin,
 			deleteLog, // 删除log
-			// terser({
-			// 	// module: /^esm/.test(format),
-			// 	compress: {
-			// 		ecma: 2020,
-			// 		pure_getters: true,
-			// 	},
-			// 	safari10: true,
-			// }),
+			terser({
+				// module: /^esm/.test(format),
+				compress: {
+					ecma: 2020,
+					pure_getters: true,
+					drop_console: true,
+					drop_debugger: true,
+				},
+				safari10: true,
+			}),
 		],
 		output: {
 			exports: 'auto',

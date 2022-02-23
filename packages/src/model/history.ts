@@ -106,14 +106,14 @@ export class History {
 
 	pushEntry(appState: AppState, elements: readonly properties[]) {
 		// console.log(this.elementCache.get())
-		console.log(
-			JSON.stringify(
-				this.stateHistory[this.stateHistory.length - 1]?.elements?.map((e) => {
-					return this.elementCache.get(e.id)?.get(e.versionNonce)
-				}),
-			),
-			'\n-------分隔线--------\n',
-		)
+		// console.log(
+		// 	JSON.stringify(
+		// 		this.stateHistory[this.stateHistory.length - 1]?.elements?.map((e) => {
+		// 			return this.elementCache.get(e.id)?.get(e.versionNonce)
+		// 		}),
+		// 	),
+		// 	'\n-------分隔线--------\n',
+		// )
 		const newEntryDehydrated = this.generateEntry(appState, elements)
 		const newEntry: HistoryEntry = this.hydrateHistoryEntry(newEntryDehydrated)
 		if (newEntry) {

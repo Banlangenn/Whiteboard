@@ -506,7 +506,9 @@ class BaseShape {
             this.appendPointCallTimes = 0;
         });
         this.endPendingPoint = fnAfter(this, this.endPendingPoint, (ctx, p, events) => {
-            if (this.available) {
+            var _a, _b;
+            if ((this.available && !((_a = this.data) === null || _a === void 0 ? void 0 : _a.text)) ||
+                ((_b = this.data) === null || _b === void 0 ? void 0 : _b.text) !== this.prevText) {
                 this.data.versionNonce = randomInteger();
                 this.data.version += 1;
                 events.emit('pushEntry', this);
@@ -1079,7 +1081,7 @@ class RectShape extends BaseShape {
             angle: 0,
             radius: 0,
         };
-        this.data = Object.assign(defaultOptions, userOptions);
+        this.data = Object.assign(createShapeProperties(defaultOptions), userOptions);
         if (!userOptions.isAuxiliary) {
             this.rectBounding = new RectShape(createShapeProperties({
                 ...defaultOptions,
@@ -1092,6 +1094,8 @@ class RectShape extends BaseShape {
                 isDash: true,
             }));
         }
+        this.pointerDownState = this.initPointerDownState();
+        this.vertex = this.getVertex();
     }
     roundRect(context, ignoreCache = false) {
         const { x, y, width, height, radius } = this.data;
@@ -1134,14 +1138,16 @@ class RectShape extends BaseShape {
         ctx.translate(-cx, -cy);
         if (!this.data.isAuxiliary && this.isEdit) {
             this.auxiliary(ctx);
-            this.transformHandles = this.getTransformHandles(this.limitValue, angle, {});
+            this.transformHandles = this.getTransformHandles(this.limitValue, angle, {
+                rotation: true,
+            });
             this.renderTransformHandles(ctx, this.transformHandles, angle);
         }
     }
     initPending(ctx, point, events) {
         this.drawAttributeInit(ctx);
+        this.pointerDownState = this.initPointerDownState(point);
         if (this.isEdit) {
-            this.pointerDownState = this.initPointerDownState(point);
             events.emit('clearCapturingCanvas');
             this.draw(ctx);
             return;
@@ -1231,9 +1237,9 @@ class RectShape extends BaseShape {
     initPointerDownState(p = { x: 0, y: 0 }) {
         var _a;
         const { x, y, width, height, angle = 0 } = this.data;
-        const p0 = ((_a = this === null || this === void 0 ? void 0 : this.pointerDownState) === null || _a === void 0 ? void 0 : _a.offset) || { x: 0, y: 0 };
+        const point = ((_a = this === null || this === void 0 ? void 0 : this.pointerDownState) === null || _a === void 0 ? void 0 : _a.offset) || { x: 0, y: 0 };
         const limitValue = getRectLimitValue({ x, y }, width, height, 0);
-        return { ...limitValue, startPoint: p, offset: p0, angle };
+        return { ...limitValue, startPoint: p, offset: point, angle };
     }
     computeClick(p, events) {
         if (this.isEdit) {
@@ -1286,7 +1292,7 @@ class StrokeShape extends BaseShape {
                 return data;
             },
         };
-        this.data = Object.assign(defaultOptions, userOptions);
+        this.data = Object.assign(createShapeProperties(defaultOptions), userOptions);
         this.rectBounding = new RectShape(createShapeProperties({
             ...defaultOptions,
             isAuxiliary: true,
@@ -1640,6 +1646,7 @@ class TextShape extends BaseShape {
     constructor(userOptions) {
         super();
         this.name = '文字';
+        this.prevText = '';
         const defaultOptions = {
             key: 9,
             x: 0,
@@ -1653,7 +1660,7 @@ class TextShape extends BaseShape {
             textAlign: 'left',
             isAuxiliary: false,
         };
-        this.data = Object.assign(defaultOptions, userOptions, {
+        this.data = Object.assign(createShapeProperties(defaultOptions), userOptions, {
             strokeColor: userOptions.color,
         });
         if (!userOptions.isAuxiliary) {
@@ -1675,6 +1682,7 @@ class TextShape extends BaseShape {
         this.getSourceRect();
     }
     initPending(ctx, point, events, translatePosition) {
+        this.prevText = this.data.text;
         if (this.isEdit) {
             this.movePoint = point;
             this.drawAttributeInit(ctx);
@@ -2540,10 +2548,10 @@ class History {
         this.elementCache.clear();
     }
     get canUndo() {
-        return this.redoStack.length !== 0;
+        return this.stateHistory.length !== 1;
     }
     get canRedo() {
-        return this.stateHistory.length !== 0;
+        return this.redoStack.length !== 0;
     }
     shouldCreateEntry(nextEntry) {
         const { lastEntry } = this;
@@ -2566,6 +2574,11 @@ class History {
         return false;
     }
     pushEntry(appState, elements) {
+        var _a, _b;
+        console.log(JSON.stringify((_b = (_a = this.stateHistory[this.stateHistory.length - 1]) === null || _a === void 0 ? void 0 : _a.elements) === null || _b === void 0 ? void 0 : _b.map((e) => {
+            var _a;
+            return (_a = this.elementCache.get(e.id)) === null || _a === void 0 ? void 0 : _a.get(e.versionNonce);
+        })), '\n-------分隔线--------\n');
         const newEntryDehydrated = this.generateEntry(appState, elements);
         const newEntry = this.hydrateHistoryEntry(newEntryDehydrated);
         if (newEntry) {
@@ -3237,6 +3250,7 @@ class Crop extends EventHub {
                     [data.id]: true,
                 },
             }, this.currentPage.map((e) => e.getData()).concat(data));
+            this.emit('updateModel');
         });
     }
     unuse(name) {
@@ -3372,6 +3386,7 @@ class Crop extends EventHub {
     }
     historyRender(data, event) {
         const graphics = [];
+        this.emit('updateModel');
         for (const e of data.elements) {
             const g = this.initGraphics(this.graphicsMap[e.key], e);
             if (data.appState.selectedElementIds[e.id]) {
@@ -3523,6 +3538,13 @@ class Crop extends EventHub {
         const g = createGraphics(G, data, this.events);
         g.getSourceRect(true);
         this.currentPage.push(g);
+        this.history.pushEntry({
+            name: 'xxxx',
+            selectedElementIds: {
+                [data.id]: true,
+            },
+        }, this.currentPage.map((e) => e.getData()));
+        this.emit('updateModel');
     }
     dispatchLocalEvent(data) {
         if (Array.isArray(data)) {
@@ -3628,6 +3650,14 @@ class Crop extends EventHub {
             g.draw(this.context.renderingCanvasContext);
             this.currentPage.push(g);
         }
+        const data = g.getData();
+        this.history.pushEntry({
+            name: 'xxxx',
+            selectedElementIds: {
+                [data.id]: true,
+            },
+        }, this.currentPage.map((e) => e.getData()).concat(data));
+        this.emit('updateModel');
         return this;
     }
     getActiveObject() {
@@ -3652,8 +3682,8 @@ class Crop extends EventHub {
             throw new Error(option.name + '已经注册过一次');
         }
         let args = [];
-        if (option.params) {
-            args = [option.params];
+        if (option.params && Array.isArray(option.params)) {
+            args = option.params;
         }
         return createFunc(option.type, ...args);
     }

@@ -159,7 +159,7 @@ export default class HeaderComponent {
 		})
 
 		pen.style.fill = player.penColor
-		color.style.fill = player.penColor
+		// color.style.fill = player.penColor
 
 		// 要把颜色变化-- 通知过来
 		const colorHandle = (e) => {
