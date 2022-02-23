@@ -147,7 +147,7 @@ export default class HeaderComponent {
 		// console
 
 		//  可以用 空心和实心来 表明能够 清空
-		let color = this.html.querySelector('.color')
+		// let color = this.html.querySelector('.color')
 		let drawList = this.html.querySelector('.draw-icon-list')
 
 		player.on('penColor', (c) => {
@@ -155,19 +155,19 @@ export default class HeaderComponent {
 			if (player.isNormalPen()) {
 				pen.style.fill = c
 			}
-			color.style.fill = c
+			// color.style.fill = c
 		})
 
 		pen.style.fill = player.penColor
 		// color.style.fill = player.penColor
 
 		// 要把颜色变化-- 通知过来
-		const colorHandle = (e) => {
-			e.stopPropagation()
-			console.log('colorPickerChange 触发', e.type)
-			// 手动失去焦点
-			player.emit('colorPickerChange')
-		}
+		// const colorHandle = (e) => {
+		// 	e.stopPropagation()
+		// 	console.log('colorPickerChange 触发', e.type)
+		// 	// 手动失去焦点
+		// 	player.emit('colorPickerChange')
+		// }
 
 		//
 
@@ -212,8 +212,8 @@ export default class HeaderComponent {
 				drawStatusHandle(11)
 			}
 			// disappear.onmousedown = disappearHandle
-			color.onmousedown = colorHandle
-			clear.onmousedown = clearHandle
+			// color.onmousedown = colorHandle
+			// clear.onmousedown = clearHandle
 
 			undo.onmousedown = undoHandle
 			redo.onmousedown = redoHandle
@@ -230,7 +230,7 @@ export default class HeaderComponent {
 			drawStatusHandle(11)
 		}
 		// disappear.ontouchend = disappearHandle
-		color.ontouchend = colorHandle
+		// color.ontouchend = colorHandle
 		clear.ontouchend = clearHandle
 
 		undo.ontouchend = undoHandle
