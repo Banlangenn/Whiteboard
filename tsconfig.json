@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"noImplicitAny": true,
+		"baseUrl": ".",
+		"outDir": "./dist",
+		"sourceMap": false,
+		"module": "ES2020",
+		"target": "ES2019",
+		"moduleResolution": "node",
+		"allowJs": false,
+		"strict": true,
+		"noUnusedLocals": true,
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"removeComments": true,
+		"declaration": true,
+		"declarationDir": "types"
+	},
+	"include": ["packages/src"],
+	"exclude": ["./node_modules"]
+}
