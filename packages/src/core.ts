@@ -1091,6 +1091,17 @@ export class Crop extends EventHub {
 	// 	this.capturingDrawCurrentStroke(newCrashActiveLine)
 	// }
 
+	getCurrentPageData() {
+		const currentG = this.currentGraphics
+		if (currentG) {
+			currentG.setEditStatus(false)
+			this.events.emit('appendCurrentPage', currentG)
+			this.currentGraphics = null as any
+		}
+
+		return this.currentPage.map((e) => e.getData())
+	}
+
 	async getDataURL(
 		params: {
 			type?: 'Base64' | 'Blob'
@@ -1267,6 +1278,7 @@ export class Crop extends EventHub {
 		return this
 	}
 
+	// 获取编辑状态的对象
 	public getActiveObject() {
 		if (this.currentGraphics?.isEdit) {
 			return this.currentGraphics

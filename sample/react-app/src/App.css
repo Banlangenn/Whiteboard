@@ -11,6 +11,9 @@
 	left: 0;
 	z-index: 200;
 }
+.edit-container {
+	background: #ebfbee;
+}
 
 .App-logo {
 	height: 40vmin;

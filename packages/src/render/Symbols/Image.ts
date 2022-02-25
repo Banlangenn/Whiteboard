@@ -79,6 +79,8 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 				setInitData(e)
 			})
 		} else {
+			// 除非通过事件 把所有格promise 传过去
+			// 组成一个大同时加载  加载完成之后在触发  在外层触发render
 			setInitData(imageOrUri)
 		}
 	}
