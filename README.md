@@ -3,10 +3,17 @@
 ## 项目介绍
 
 整个项目使用 Typescript 实现，采用化整为零的方案，Whiteboard 只用维护画布、全局数据、事件中心，其他部分均可，以组件形式接入。
-
 **图形部分**: 只需要实现图形抽象类上的方法，就可以接入 Whiteboard ，画笔移动的时候会传入，画笔坐标，画布上下文，事件中心参数给当前类，既可以自定义画布内容。
 
 **操作 UI**: 在 Whiteboard 在初始化的时候，会自动实例化传入的 UI 组件类，并调用 createEl，传入 Whiteboard 的 操作层 container 节点，和 Whiteboard 实例， UI 组件类既可以自定义内容。
+
+---
+
+### 架构图
+
+![架构2](https://user-images.githubusercontent.com/19684540/155644399-bf521f9a-736f-4c20-bf50-434529814d1e.png)
+
+---
 
 ### 支持的功能有
 
