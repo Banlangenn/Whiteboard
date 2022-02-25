@@ -8,6 +8,11 @@
 
 **操作 UI**: 在 Whiteboard 在初始化的时候，会自动实例化传入的 UI 组件类，并调用 createEl，传入 Whiteboard 的 操作层 container 节点，和 Whiteboard 实例， UI 组件类既可以自定义内容。
 
+### 架构图
+
+![架构2](https://user-images.githubusercontent.com/19684540/155644399-bf521f9a-736f-4c20-bf50-434529814d1e.png)
+
+
 ### 支持的功能有
 
 1. 序列化操作历史记录，支持撤销/重做
