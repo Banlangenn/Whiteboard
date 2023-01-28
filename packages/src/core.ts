@@ -24,7 +24,7 @@ import {
 	CropComponent,
 	localTouchEvent,
 } from './core.type'
-import { properties, Graphics } from './render/Symbols/Shape'
+import { properties, Graphics, GraphicsIns } from './render/Symbols/Shape'
 
 function createFunc<T>(c: new (...arg: any[]) => T, ...rest: any[]): T {
 	return new c(...rest)
@@ -34,7 +34,7 @@ function createFunc<T>(c: new (...arg: any[]) => T, ...rest: any[]): T {
 function createGraphicsBase<T extends Graphics>(): (
 	shape: T,
 	...res: any[]
-) => T {
+) => InstanceType<T> {
 	const shapeCache: { [key: string]: any } = {}
 	return (shape, ...res) => {
 		// console.log('createGraphicsBaseres缓存params：', res)
@@ -104,10 +104,10 @@ export class Crop extends EventHub {
 	// private _player: playerI
 	private _container: HTMLElement
 	private graphicsMap!: { [key: number]: Graphics }
-	private currentGraphics!: Graphics
+	private currentGraphics!: GraphicsIns
 	private events: EventHub = new EventHub()
-	private currentPage: Graphics[] = []
-	private _installedCom: { [key: string]: ComFunc<Crop> } = {}
+	private currentPage: GraphicsIns[] = []
+	private _installedCom: { [key: string]: InstanceType<ComFunc> } = {}
 	private history: InstanceType<typeof History>
 	constructor(option: Required<CropProps>, ready?: (...arg: any[]) => void) {
 		super([
@@ -173,7 +173,7 @@ export class Crop extends EventHub {
 		this.emit('ready', this)
 	}
 
-	public getElement(id: string): Graphics | null {
+	public getElement(id: string): GraphicsIns | null {
 		// 维护map  海曙数组
 		for (const el of this.currentPage) {
 			if (el.getData().id === id) {
@@ -237,7 +237,7 @@ export class Crop extends EventHub {
 			y,
 		}
 	}
-	drawCurrentGroup(strokes?: Graphics[] | Graphics) {
+	drawCurrentGroup(strokes?: GraphicsIns[] | GraphicsIns) {
 		if (!this.canRender) return
 		const { x = 0, y = 0 } = this._translatePosition || {}
 		if (strokes) {
@@ -275,7 +275,10 @@ export class Crop extends EventHub {
 			}
 		}
 	}
-	drawGraphics(ctx: CanvasRenderingContext2D, strokes?: Graphics | Graphics[]) {
+	drawGraphics(
+		ctx: CanvasRenderingContext2D,
+		strokes?: GraphicsIns | GraphicsIns[],
+	) {
 		// console.log(`${strokes ? '增量更新' + strokes.length : ('全量更新')}----`)
 		const strokesRef = strokes || this.currentPage
 		if (Array.isArray(strokesRef)) {
@@ -288,7 +291,7 @@ export class Crop extends EventHub {
 			strokesRef.draw(ctx, true)
 		}
 	}
-	getSelectGraphics(point: point): Graphics | undefined | null {
+	getSelectGraphics(point: point): GraphicsIns | undefined {
 		// 初始化 上来的 没有 currentGraphics
 		// 不渲染 返回false
 		if (!this.canRender) return undefined
@@ -323,14 +326,14 @@ export class Crop extends EventHub {
 	}
 
 	getCrashActiveLineAndRemove(
-		currentPage: Graphics[],
+		currentPage: GraphicsIns[],
 		ePoint: point,
 		radius: number,
 		once = false,
-	): Graphics[] {
+	): GraphicsIns[] {
 		// 多次检查 - 延迟删除一次
 		// const linePath = this.linePath
-		let crashActiveLine: Graphics[] = []
+		let crashActiveLine: GraphicsIns[] = []
 
 		// 如果 全部检查完-- 正向 和 负向 没什么区别--
 		for (let index = currentPage.length - 1; index >= 0; index--) {
@@ -369,11 +372,11 @@ export class Crop extends EventHub {
 	}
 	// 获取 选中的笔记 平移和删除需要remove  复制不需要删除
 	getRectCrashLine(
-		currentPage: Graphics[],
+		currentPage: GraphicsIns[],
 		limitValue: limitValue,
 		isRemove = true,
 	) {
-		let crashActiveLine: Graphics[] = []
+		let crashActiveLine = []
 
 		for (let index = currentPage.length - 1; index >= 0; index--) {
 			const element = currentPage[index]
@@ -415,16 +418,19 @@ export class Crop extends EventHub {
 			this.renderer.clearRenderingCanvas(this.context, x, y)
 		})
 		// 插入当前的 page
-		this.events.on('appendCurrentPage', (graphics) => {
-			const g = graphics as Graphics | Graphics[]
-			if (Array.isArray(g)) {
-				this.currentPage.push(...g)
-			} else {
-				// console.log('g.appendPointCallTimes', g.appendPointCallTimes)
-				this.currentPage.push(g)
-			}
-			this.drawCurrentGroup(g)
-		})
+		this.events.on(
+			'appendCurrentPage',
+			(graphics: GraphicsIns | GraphicsIns[]) => {
+				const g = graphics
+				if (Array.isArray(g)) {
+					this.currentPage.push(...g)
+				} else {
+					// console.log('g.appendPointCallTimes', g.appendPointCallTimes)
+					this.currentPage.push(g)
+				}
+				this.drawCurrentGroup(g)
+			},
+		)
 		this.events.on('crashRemove', (point, radius) => {
 			const p = point as point
 			const r = radius as number
@@ -448,7 +454,7 @@ export class Crop extends EventHub {
 			}
 		})
 
-		this.events.on('pushEntry', (g: Graphics) => {
+		this.events.on('pushEntry', (g: GraphicsIns) => {
 			const data = g.getData()
 
 			this.history.pushEntry(
@@ -471,7 +477,7 @@ export class Crop extends EventHub {
 		delete this._installedCom[name]
 	}
 	// 加载组件 异步
-	public async use(option: CropComponent): Promise<ComFunc<Crop>> {
+	public async use(option: CropComponent): Promise<InstanceType<ComFunc>> {
 		const instance = this.createComFunc(option)
 
 		if (instance.createEl) {
@@ -740,6 +746,7 @@ export class Crop extends EventHub {
 		}
 		this.currentPage = graphics
 
+		// 为什么要定时器 -- 用户对这个时间不会敏感
 		setTimeout(() => {
 			this.renderer.clearCanvas(this.context)
 			if (this.currentGraphics) {
@@ -1201,7 +1208,7 @@ export class Crop extends EventHub {
 	// 2. 增量
 	// 3. 不需要清画布
 	// 4.
-	public render(strokes?: Graphics[]) {
+	public render(strokes?: GraphicsIns[]) {
 		this.drawCurrentGroup(strokes)
 		// this.renderer.drawModel(this.context, this.model, strokes)
 	}
@@ -1255,7 +1262,7 @@ export class Crop extends EventHub {
 		// 获取最大 最小值
 		//
 	}
-	public add(g: Graphics) {
+	public add(g: GraphicsIns) {
 		if (g?.isEdit) {
 			g.draw(this.context.capturingCanvasContext)
 			this.currentGraphics = g
@@ -1357,7 +1364,7 @@ export class Crop extends EventHub {
 	private initGraphics<T extends Graphics>(
 		graphics: T,
 		properties = {},
-	): Graphics {
+	): GraphicsIns {
 		// 如果当前 currentGraphics 没有触发 --push  就还是缓存以前
 		// if (this.currentGraphics) {
 		//     // 什么时候 应该把橡皮给重合掉

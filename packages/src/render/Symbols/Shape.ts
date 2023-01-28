@@ -90,22 +90,23 @@ export function fnAfter(
 //     updated: element.updated ?? getUpdatedTimestamp(),
 //   }
 export interface properties {
-	version: number
-	versionNonce: number
-	id: string
+	version?: number
+	versionNonce?: number
+	key?: number
+	id?: string
+
 	x: number
 	y: number
+	width: number
+	height: number
 	fill?: boolean
 	fillColor?: string
 	color?: string
 	isDash?: boolean
 	opacity?: number
 	angle?: number
-	width: number
-	height: number
-	lineWidth: number
+	lineWidth?: number
 	backgroundColor?: string
-	key: number
 	path2d?: {
 		// path2d
 		path: Path2D
@@ -114,14 +115,14 @@ export interface properties {
 }
 
 // 外边会用到的
-export abstract class BaseShape<T extends properties> {
+export abstract class BaseShape<T extends properties = properties> {
 	// 画当前图形
 	static key: number | string
 	static cache = false
-
+	name = ''
 	appendPointCallTimes = 0
 	disabled = false
-	data!: T
+	data: T
 	threshold = 4
 	transformHandles: TransformHandles = {}
 	limitValue: limitValue = {
@@ -132,7 +133,8 @@ export abstract class BaseShape<T extends properties> {
 	}
 	private _isEdit = false
 
-	constructor() {
+	constructor(userOptions: T) {
+		this.data = userOptions
 		const originAppendPoint = this.appendPoint
 		this.appendPoint = fnAfter(this, originAppendPoint, () => {
 			this.appendPointCallTimes += 1
@@ -153,7 +155,7 @@ export abstract class BaseShape<T extends properties> {
 					this.data?.text !== this.prevText
 				) {
 					this.data.versionNonce = randomInteger()
-					this.data.version += 1
+					this.data.version = (this.data.version ?? 0) + 1
 					events.emit('pushEntry', this)
 				}
 			},
@@ -495,10 +497,13 @@ export abstract class BaseShape<T extends properties> {
 }
 // 只能这么搞一个通用 的类型 不然要或 所有子类
 // type
-export type Graphics = BaseShape<properties> &
-	(new (userOptions: properties, ...rest: unknown[]) => Graphics) & {
+export type Graphics<T extends properties = properties> =
+	typeof BaseShape<T> & {
 		key: number
+		name: string
 	}
+
+export type GraphicsIns = InstanceType<typeof BaseShape<properties>>
 
 // South East  West North
 // 东南西北
@@ -961,12 +966,12 @@ export function polygonCheckCrash(
 // }
 
 export const createShapeProperties = <T extends properties>(
-	element: Partial<T> & { key: number },
+	element: Partial<T>,
+	Shape: { key: number },
 ): T => {
 	return {
 		...(element as T),
-		// color: element.color,
-		// key: element.key,
+		key: Shape.key,
 		version: element.version || 1,
 		versionNonce: element.versionNonce ?? randomInteger(),
 		id: element.id || nanoid(),

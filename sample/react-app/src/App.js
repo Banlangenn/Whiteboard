@@ -8,9 +8,10 @@ import {
 	StrokeShape,
 	loadImage,
 	computeMaxArea,
+	GroupShape,
 	RubberShape,
 	RectShape,
-} from './../../../dist'
+} from './../../../packages/src'
 import { Header, Loading, Message } from './components/index'
 import JSONData from './data.json'
 function App() {
@@ -27,8 +28,8 @@ function App() {
 			canRender: true,
 			nativeEventStop: false,
 			nativeEventPrev: false,
-
-			graphics: [ImageShape, RubberShape, RectShape, TextShape, StrokeShape],
+		
+			graphics: [ImageShape, RubberShape, RectShape, TextShape, StrokeShape,GroupShape],
 		})
 
 		cropInstance.use({
@@ -89,11 +90,17 @@ function App() {
 			y: 114.99463979416808,
 		}
 		const imgNode2 = new ImageShape(data2)
+		
+		container.add(new ImageShape(data2))
+		container.add(imgNode2.clone())
 
 		container.add(imgNode).add(imgNode2).resize({
 			width: 655,
 			height: 780,
 		})
+
+		// container.setDrawStatus(10)
+		
 		container.hideLoading()
 
 		window.getData = () => {
