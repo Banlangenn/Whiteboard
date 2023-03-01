@@ -23,9 +23,12 @@ import {
 import RectShape, { RectShapeProperties } from './Rect'
 export interface ImageShapeProperties extends properties {
 	imageOrUri: string | HTMLImageElement | HTMLCanvasElement
-	width: number
-	height: number
 }
+type PartialPickRequired<
+	O extends Record<keyof any, any>,
+	P extends keyof O,
+> = Partial<O> & Pick<O, P>
+
 export function renderArc(
 	context: Path2D | CanvasRenderingContext2D,
 	center: point,
@@ -33,6 +36,7 @@ export function renderArc(
 ): void {
 	context.arc(center.x, center.y, radius, 0, Math.PI * 2, true)
 }
+
 export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	// firstPoint!: point
 	static key = 8
@@ -41,20 +45,26 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	rectBounding!: InstanceType<typeof RectShape>
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	private image!: HTMLImageElement | HTMLCanvasElement
-	constructor(userOptions: ImageShapeProperties) {
-		super(userOptions)
-
-		this.data = createShapeProperties<ImageShapeProperties>(
+	constructor(
+		userOptions: PartialPickRequired<ImageShapeProperties, 'imageOrUri'>,
+	) {
+		const data = createShapeProperties<ImageShapeProperties>(
 			userOptions,
 			ImageShape,
 		)
+		super(data)
+
+		// 入参是可选的
+		// data 是必须有的
+
+		this.data = data
 		const { imageOrUri } = this.data
 		const setInitData = (img: HTMLImageElement | HTMLCanvasElement) => {
 			const { width, height } = img
 			this.data.width = this.data.width || width
 			this.data.height = this.data.height || height
 			this.image = img
-			this.data.imageOrUri = this.getSrc()
+
 			this.rectBounding = new RectShape(
 				createShapeProperties<RectShapeProperties>(
 					{
@@ -79,20 +89,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 				setInitData(e)
 			})
 		} else {
-			// 除非通过事件 把所有格promise 传过去
-			// 组成一个大同时加载  加载完成之后在触发  在外层触发render
 			setInitData(imageOrUri)
-		}
-	}
-	getSrc() {
-		if (this.image) {
-			if ('toDataURL' in this.image) {
-				return this.image.toDataURL()
-			} else {
-				return this.image.src
-			}
-		} else {
-			return ''
 		}
 	}
 
@@ -193,7 +190,8 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 
 	clone() {
 		// 可能会出现 还是原来那块地址
-		const o = new ImageShape({ ...this.data, imageOrUri: this.getSrc() })
+
+		const o = new ImageShape({ ...this.data })
 		return o
 	}
 	computeClick(p: point, events: InstanceType<typeof EventHub>): boolean {

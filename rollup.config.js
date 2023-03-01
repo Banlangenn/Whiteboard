@@ -46,7 +46,7 @@ function createConfig() {
 			terser({
 				// module: /^esm/.test(format),
 				compress: {
-					ecma: 2020,
+					ecma: 'ESNexts',
 					pure_getters: true,
 					drop_console: true,
 					drop_debugger: true,

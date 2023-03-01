@@ -36,7 +36,6 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 	movePoint!: point
 	rectBounding!: InstanceType<typeof RectShape>
 	constructor(userOptions: StrokeShapeProperties) {
-		super(userOptions)
 		const defaultOptions = {
 			key: 2,
 			xs: [],
@@ -56,10 +55,13 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 				return data
 			},
 		}
-		this.data = createShapeProperties<StrokeShapeProperties>(
+		const data = createShapeProperties<StrokeShapeProperties>(
 			Object.assign(defaultOptions, userOptions),
 			StrokeShape,
 		)
+		super(data)
+
+		this.data = data
 		this.rectBounding = new RectShape(
 			createShapeProperties<RectShapeProperties>(
 				{
@@ -142,7 +144,7 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 			this.movePoint = point
 			this.computeOffsetPath(deviationX, deviationY)
 			this.getSourceRect()
-			this.data.path2d = undefined
+			this.data.path2d = null
 			events.emit('clearCapturingCanvas')
 			this.drawAttributeInit(ctx)
 			this.draw(ctx, true)

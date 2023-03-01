@@ -41,8 +41,6 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	rectBounding!: InstanceType<typeof RectShape>
 	constructor(userOptions: RectShapeProperties) {
-		super(userOptions)
-
 		const defaultOptions = {
 			key: 11,
 			width: 0,
@@ -53,10 +51,13 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			angle: 0,
 			radius: 0, // 圆角
 		}
-		this.data = createShapeProperties<RectShapeProperties>(
+		const data = createShapeProperties<RectShapeProperties>(
 			Object.assign(defaultOptions, userOptions),
 			RectShape,
 		)
+		super(data)
+
+		this.data = data
 
 		if (!userOptions.isAuxiliary) {
 			this.rectBounding = new RectShape(

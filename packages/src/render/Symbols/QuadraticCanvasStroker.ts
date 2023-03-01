@@ -328,7 +328,7 @@ export function drawStrokev5(
 	try {
 		// 两个 path  一个负责 绘制-- 一个负责存起来
 		const path2d = strokeReference?.path2d
-		const beforePath = path2d ? new Path2D(path2d.path) : new Path2D()
+		const beforePath = path2d?.path ? new Path2D(path2d.path) : new Path2D()
 		context.beginPath()
 		if (nbquadratics <= 1 || !path2d) {
 			renderArc(beforePath, firstPoint, width * firstPoint.p)
@@ -383,6 +383,7 @@ export function drawStrokev5(
 
 		// color !== undefined && context.fillStyle !== color
 		context.fill(strokePathCTX)
+
 		strokeReference.path2d = {
 			path: savePath ? strokePathCTX : beforePath,
 			end: savePath,

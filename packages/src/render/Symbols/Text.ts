@@ -32,7 +32,6 @@ export default class TextShape extends BaseShape<TextProperties> {
 	rectBounding!: InstanceType<typeof RectShape>
 	prevText = ''
 	constructor(userOptions: TextProperties) {
-		super(userOptions)
 		const defaultOptions = {
 			key: 9,
 			x: 0,
@@ -46,12 +45,15 @@ export default class TextShape extends BaseShape<TextProperties> {
 			textAlign: 'left',
 			isAuxiliary: false,
 		}
-		this.data = createShapeProperties<TextProperties>(
+		const data = createShapeProperties<TextProperties>(
 			Object.assign(defaultOptions, userOptions, {
 				strokeColor: userOptions.color,
 			}),
 			TextShape,
 		)
+		super(data)
+
+		this.data = data
 
 		// 没有画的情况 怎么才能拿到宽高
 		if (!userOptions.isAuxiliary) {
@@ -121,7 +123,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 			this.getSourceRect()
 			events.emit('clearCapturingCanvas')
 			this.drawAttributeInit(ctx)
-			this.data.path2d = undefined
+			this.data.path2d = null
 			this.draw(ctx)
 			this.auxiliary(ctx)
 			return

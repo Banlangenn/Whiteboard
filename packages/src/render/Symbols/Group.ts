@@ -24,7 +24,6 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 	movePoint!: point
 	rectBounding!: InstanceType<typeof RectShape>
 	constructor(userOptions: GroupProperties) {
-		super(userOptions)
 		const defaultOptions = {
 			key: 10,
 			width: 0,
@@ -33,10 +32,13 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 			y: 0,
 			lineWidth: 0,
 		}
-		this.data = createShapeProperties<GroupProperties>(
+		const data = createShapeProperties<GroupProperties>(
 			Object.assign(defaultOptions, userOptions),
 			GroupShape,
 		)
+		super(data)
+
+		this.data = data
 
 		this.rectBounding = new RectShape(
 			createShapeProperties<RectShapeProperties>(
@@ -70,7 +72,7 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 
 		for (const item of this.data.g) {
 			item.drawAttributeInit(ctx)
-			item.data.path2d = undefined
+			item.data.path2d = null
 			item.draw(ctx, ignoreCache)
 		}
 		// hack 文字
@@ -199,7 +201,6 @@ export class InnerGroupShape extends GroupShape {
 	static cache = true
 	name = '内部组'
 	constructor(p: GroupProperties) {
-		super(p)
 		const defaultOptions = {
 			width: 0,
 			height: 0,
@@ -207,7 +208,13 @@ export class InnerGroupShape extends GroupShape {
 			y: 0,
 			g: [],
 		}
-		this.data = Object.assign(defaultOptions, p)
+		const data = createShapeProperties<GroupProperties>(
+			Object.assign(defaultOptions, p),
+			InnerGroupShape,
+		)
+		super(data)
+
+		this.data = data
 	}
 	initPending(
 		ctx: CanvasRenderingContext2D,

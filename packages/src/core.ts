@@ -48,11 +48,13 @@ function createGraphicsBase<T extends Graphics>(): (
 				// console.log(currentShape, 'createGraphicsBase')
 				return currentShape
 			} else {
-				shapeCache[key] = createFunc(shape, ...res)
+				// TODO: 类型错误
+				shapeCache[key] = createFunc(shape as any, ...res)
 				return shapeCache[key]
 			}
 		}
-		return createFunc(shape, ...res)
+		// TODO: 类型错误
+		return createFunc(shape as any, ...res)
 	}
 }
 // 这个函数可以传值的  是个闭包缓存

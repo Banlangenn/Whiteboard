@@ -90,11 +90,11 @@ export function fnAfter(
 //     updated: element.updated ?? getUpdatedTimestamp(),
 //   }
 export interface properties {
-	version?: number
-	versionNonce?: number
-	key?: number
-	id?: string
-
+	version: number
+	versionNonce: number
+	key: number
+	id: string
+	lineWidth: number
 	x: number
 	y: number
 	width: number
@@ -105,24 +105,23 @@ export interface properties {
 	isDash?: boolean
 	opacity?: number
 	angle?: number
-	lineWidth?: number
 	backgroundColor?: string
 	path2d?: {
 		// path2d
 		path: Path2D
 		end: boolean
-	}
+	} | null
 }
 
 // 外边会用到的
-export abstract class BaseShape<T extends properties = properties> {
+export abstract class BaseShape<T extends Partial<properties> = properties> {
 	// 画当前图形
 	static key: number | string
 	static cache = false
 	name = ''
 	appendPointCallTimes = 0
 	disabled = false
-	data: T
+	data: Required<T>
 	threshold = 4
 	transformHandles: TransformHandles = {}
 	limitValue: limitValue = {
@@ -134,7 +133,7 @@ export abstract class BaseShape<T extends properties = properties> {
 	private _isEdit = false
 
 	constructor(userOptions: T) {
-		this.data = userOptions
+		this.data = userOptions as Required<T>
 		const originAppendPoint = this.appendPoint
 		this.appendPoint = fnAfter(this, originAppendPoint, () => {
 			this.appendPointCallTimes += 1
@@ -229,7 +228,7 @@ export abstract class BaseShape<T extends properties = properties> {
 		}
 		return this
 	}
-	getData(): T {
+	getData(): Required<T> {
 		return this.data
 	}
 
@@ -281,7 +280,7 @@ export abstract class BaseShape<T extends properties = properties> {
 
 		const dashedLineMargin = 0 / zoom.value
 
-		const centeringOffset = (size - 8) / (2 * zoom.value)
+		const centeringOffset = size / (2 * zoom.value)
 
 		const transformHandles: TransformHandles = {
 			// nw 左上
@@ -497,11 +496,11 @@ export abstract class BaseShape<T extends properties = properties> {
 }
 // 只能这么搞一个通用 的类型 不然要或 所有子类
 // type
-export type Graphics<T extends properties = properties> =
-	typeof BaseShape<T> & {
-		key: number
-		name: string
-	}
+export type Graphics = typeof BaseShape<Partial<properties>> & {
+	key: number
+	name: string
+}
+// new (...arg: any[]) => BaseShape<properties>
 
 export type GraphicsIns = InstanceType<typeof BaseShape<properties>>
 
@@ -593,11 +592,14 @@ const strokeRectWithRotation = (
 ) => {
 	context.translate(cx, cy)
 	context.rotate(angle)
-	if (fill) {
-		context.fillStyle = '#fff'
-		context.fillRect(x - cx, y - cy, width, height)
-	}
-	context.strokeRect(x - cx, y - cy, width, height)
+	// if (fill) {
+	// 	context.fillStyle = '#fff'
+	// 	context.fillRect(x - cx, y - cy, width, height)
+	// }
+	// context.strokeRect(x - cx, y - cy, width, height)
+
+	context.fillStyle = '#fff'
+
 	context.rotate(-angle)
 	context.translate(-cx, -cy)
 }
@@ -968,11 +970,12 @@ export function polygonCheckCrash(
 export const createShapeProperties = <T extends properties>(
 	element: Partial<T>,
 	Shape: { key: number },
-): T => {
+) => {
+	// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 	return {
-		...(element as T),
+		...element,
 		key: Shape.key,
-		version: element.version || 1,
+		version: element.version ?? 1,
 		versionNonce: element.versionNonce ?? randomInteger(),
 		id: element.id || nanoid(),
 		fill: element.fill ?? false,
@@ -984,5 +987,5 @@ export const createShapeProperties = <T extends properties>(
 		backgroundColor: element.backgroundColor,
 		width: element.width || 0,
 		height: element.height || 0,
-	}
+	} as Required<T>
 }
