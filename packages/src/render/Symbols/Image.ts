@@ -29,14 +29,6 @@ type PartialPickRequired<
 	P extends keyof O,
 > = Partial<O> & Pick<O, P>
 
-export function renderArc(
-	context: Path2D | CanvasRenderingContext2D,
-	center: point,
-	radius: number,
-): void {
-	context.arc(center.x, center.y, radius, 0, Math.PI * 2, true)
-}
-
 export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	// firstPoint!: point
 	static key = 8
@@ -53,43 +45,53 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 			ImageShape,
 		)
 		super(data)
-
 		// 入参是可选的
 		// data 是必须有的
-
 		this.data = data
-		const { imageOrUri } = this.data
-		const setInitData = (img: HTMLImageElement | HTMLCanvasElement) => {
-			const { width, height } = img
-			this.data.width = this.data.width || width
-			this.data.height = this.data.height || height
-			this.image = img
+		this.initImageData()
+	}
 
-			this.rectBounding = new RectShape(
-				createShapeProperties<RectShapeProperties>(
-					{
-						x: this.data.x,
-						y: this.data.y,
-						width: this.data.width,
-						height: this.data.width,
-						isAuxiliary: true,
-						color: '#000',
-						lineWidth: 1,
-						radius: 4,
-						isDash: true,
-					},
-					RectShape,
-				),
-			)
-			this.getSourceRect()
-			this.pointerDownState = this.initPointerDownState()
+	async initImageData() {
+		const { imageOrUri } = this.data
+
+		if (!this.image) {
+			this.image =
+				typeof imageOrUri === 'string'
+					? await createImage(imageOrUri)
+					: (imageOrUri as HTMLImageElement)
 		}
-		if (typeof imageOrUri === 'string') {
-			createImage(imageOrUri).then((e) => {
-				setInitData(e)
-			})
+		this.data.imageOrUri = this.getImageSrc(this.image)
+
+		const { width, height } = this.image
+		this.data.width = this.data.width || width
+		this.data.height = this.data.height || height
+		this.rectBounding = new RectShape(
+			createShapeProperties<RectShapeProperties>(
+				{
+					x: this.data.x,
+					y: this.data.y,
+					width: this.data.width,
+					height: this.data.width,
+					isAuxiliary: true,
+					color: '#6965db',
+					lineWidth: 1,
+				},
+				RectShape,
+			),
+		)
+		this.getSourceRect()
+		this.pointerDownState = this.initPointerDownState()
+	}
+	// 生成历史记录-序列化的时候 imgDom 会被干掉- 所以存起来的必须是 uri
+	getImageSrc(image: HTMLImageElement | HTMLCanvasElement) {
+		if (image) {
+			if ('toDataURL' in image) {
+				return image.toDataURL()
+			} else {
+				return image.src
+			}
 		} else {
-			setInitData(imageOrUri)
+			return ''
 		}
 	}
 
@@ -126,14 +128,18 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		)
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
-	draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
+	async draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
 		// this.drawAttributeInit(ctx)
 		// 取走一个点 能够拿到x，y
 		// 所谓缓存都是用 canvas  再画一个放在 一个
-		let img = this.image
+
+		if (!this.image) {
+			await this.initImageData()
+		}
+
 		const { x, y, width, height } = this.data
 
-		ctx.drawImage(img, x, y, width, height)
+		ctx.drawImage(this.image, x, y, width, height)
 
 		if (this.isEdit) {
 			this.auxiliary(ctx)
@@ -190,7 +196,6 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 
 	clone() {
 		// 可能会出现 还是原来那块地址
-
 		const o = new ImageShape({ ...this.data })
 		return o
 	}

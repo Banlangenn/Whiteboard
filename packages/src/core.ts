@@ -35,12 +35,15 @@ function createGraphicsBase<T extends Graphics>(): (
 	shape: T,
 	...res: any[]
 ) => InstanceType<T> {
-	const shapeCache: { [key: string]: any } = {}
+	const shapeCache: Record<string, any> = {}
+	const imgDomCache: Record<string, unknown> = {}
+
 	return (shape, ...res) => {
 		// console.log('createGraphicsBaseres缓存params：', res)
-		const ShapeIns = Object.getPrototypeOf(shape).constructor
-		if (ShapeIns.cache) {
-			const key = ShapeIns.key
+
+		// 实例缓存
+		if (shape.cache) {
+			const key = shape.key
 			const currentShape = shapeCache[key]
 			if (currentShape) {
 				// 缓存  橡皮和组 实例
@@ -53,12 +56,13 @@ function createGraphicsBase<T extends Graphics>(): (
 				return shapeCache[key]
 			}
 		}
+
 		// TODO: 类型错误
 		return createFunc(shape as any, ...res)
 	}
 }
 // 这个函数可以传值的  是个闭包缓存
-const createGraphics = createGraphicsBase<Graphics>()
+export const createGraphics = createGraphicsBase<Graphics>()
 // (c: new (...arg: any[]) => Graphics, p: properties, e: EventHub) => Graphics
 
 const eventArray: string[] = [
@@ -277,20 +281,22 @@ export class Crop extends EventHub {
 			}
 		}
 	}
-	drawGraphics(
+	async drawGraphics(
 		ctx: CanvasRenderingContext2D,
 		strokes?: GraphicsIns | GraphicsIns[],
 	) {
+		if (!this.canRender) return
 		// console.log(`${strokes ? '增量更新' + strokes.length : ('全量更新')}----`)
 		const strokesRef = strokes || this.currentPage
+
 		if (Array.isArray(strokesRef)) {
 			for (const item of strokesRef) {
 				item.drawAttributeInit(ctx)
-				item.draw(ctx, true)
+				await item.draw(ctx, true)
 			}
 		} else {
 			strokesRef.drawAttributeInit(ctx)
-			strokesRef.draw(ctx, true)
+			await strokesRef.draw(ctx, true)
 		}
 	}
 	getSelectGraphics(point: point): GraphicsIns | undefined {
@@ -748,15 +754,16 @@ export class Crop extends EventHub {
 		}
 		this.currentPage = graphics
 
-		// 为什么要定时器 -- 用户对这个时间不会敏感
-		setTimeout(() => {
-			this.renderer.clearCanvas(this.context)
-			if (this.currentGraphics) {
-				const context = this.context.capturingCanvasContext
-				this.drawGraphics(context, this.currentGraphics)
-			}
-			this.drawCurrentGroup()
-		}, 60)
+		// 为什么要定时器
+		// 图片加载是异步的 如果立马渲染会 图片会拿不到
+		// render 弄成异步
+		this.renderer.clearCanvas(this.context)
+		if (this.currentGraphics) {
+			const context = this.context.capturingCanvasContext
+			this.drawGraphics(context, this.currentGraphics)
+		}
+
+		this.drawCurrentGroup()
 
 		this.emit('data', { v: { value: '', name: event }, t: Date.now() })
 	}
@@ -1265,11 +1272,19 @@ export class Crop extends EventHub {
 		//
 	}
 	public add(g: GraphicsIns) {
-		if (g?.isEdit) {
-			g.draw(this.context.capturingCanvasContext)
+		if (g.isEdit) {
+			if (this.currentGraphics) {
+				this.renderer.clearCapturingCanvas(this.context)
+				this.drawGraphics(
+					this.context.renderingCanvasContext,
+					this.currentGraphics,
+				)
+				this.currentPage.push(this.currentGraphics)
+			}
 			this.currentGraphics = g
+			this.drawGraphics(this.context.capturingCanvasContext, g)
 		} else {
-			g.draw(this.context.renderingCanvasContext)
+			this.drawGraphics(this.context.renderingCanvasContext, g)
 			this.currentPage.push(g)
 		}
 

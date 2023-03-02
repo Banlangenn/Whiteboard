@@ -75,10 +75,11 @@ function App() {
 		}
 
 		const imgNode = new ImageShape({
-			imageOrUri: img,
+			imageOrUri:
+				'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
 			width: 166.25,
 			height: 163.26942231075697,
-			x: 83.5625,
+			x: 100.5625,
 			y: 115.77851095617531,
 		})
 
@@ -98,7 +99,8 @@ function App() {
 		container.add(new ImageShape(data2))
 		container.add(new ImageShape(data))
 		container.add(imgNode2.clone())
-
+		container.add(imgNode.clone())
+		imgNode.setEditStatus(true)
 		container.add(imgNode).add(imgNode2).resize({
 			width: 655,
 			height: 780,
@@ -108,9 +110,11 @@ function App() {
 		// window.getData = () => {
 		// 	console.log(JSON.stringify(container.getCurrentPageData()))
 		// }
-		// window.getH = () => {
-		// 	console.log(console.log(container.history))
-		// }
+		// @ts-ignore
+		window.getH = () => {
+			// @ts-ignore
+			console.log(console.log(container.history))
+		}
 	}
 
 	useEffect(() => {

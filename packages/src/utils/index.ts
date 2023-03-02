@@ -497,13 +497,19 @@ export function getMidpoint(p1: point, p2: point): point {
 	return { x: getInt((p1.x + p2.x) / 2), y: getInt((p1.y + p2.y) / 2) }
 }
 
+// TODO: 会不会造成内存泄漏
+const imgMap: Record<string, HTMLImageElement> = {}
 // 获取Image dom
 export function createImage(url: string): Promise<HTMLImageElement> {
+	if (imgMap[url]) {
+		return Promise.resolve(imgMap[url])
+	}
 	const img = new Image()
 	img.crossOrigin = 'Anonymous'
 	img.setAttribute('crossOrigin', 'anonymous')
 	return new Promise((resolve, reject) => {
 		img.onload = function () {
+			imgMap[url] = img
 			resolve(img)
 		}
 		img.onerror = reject

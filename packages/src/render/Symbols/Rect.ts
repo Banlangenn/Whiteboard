@@ -67,10 +67,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 						x: 0,
 						y: 0,
 						isAuxiliary: true,
-						color: '#000',
+						color: '#6965db',
 						lineWidth: 1,
-						radius: 0,
-						isDash: true,
 					},
 					RectShape,
 				),
@@ -82,8 +80,15 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 
 	roundRect(context: CanvasRenderingContext2D, ignoreCache = false) {
 		const { x, y, width, height, radius } = this.data
-		// ctx.rect(x, y, width, height)
-		// ctx.stroke()
+		if (context.roundRect) {
+			context.beginPath()
+			context.roundRect(x, y, width, height, radius)
+			if (this.data.fill) {
+				context.fill()
+			}
+			context.stroke()
+			return
+		}
 		context.beginPath()
 		context.moveTo(x + radius, y)
 		context.lineTo(x + width - radius, y)
@@ -111,13 +116,14 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		const cx = (minX + maxX) / 2
 		const cy = (minY + maxY) / 2
 		ctx.translate(cx, cy)
+
 		ctx.rotate(angle)
 		if (this.data.radius !== 0) {
 			this.roundRect(ctx)
 		} else {
 			ctx.beginPath()
 			const { x, y, width, height } = this.data
-			//  - cx - cy
+
 			ctx.rect(x - cx, y - cy, width, height)
 			if (this.data.fill) {
 				ctx.fill()
@@ -129,15 +135,6 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		ctx.translate(-cx, -cy)
 		if (!this.data.isAuxiliary && this.isEdit) {
 			this.auxiliary(ctx)
-			// 辅助线对的
-			this.transformHandles = this.getTransformHandles(this.limitValue, angle, {
-				rotation: true,
-				// n: true,
-				// s: true,
-				// w: true,
-				// e: true,
-			})
-			this.renderTransformHandles(ctx, this.transformHandles, angle)
 		}
 	}
 	initPending(
@@ -206,9 +203,15 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		)
 
 		if (!this.data.isAuxiliary) {
+			const { width, height, x, y } = this.data
+			this.limitValue = getRectLimitValue(
+				{ x, y },
+				width,
+				height,
+				this.threshold,
+			)
 			const rect = getLimit2Rect(this.limitValue)
-			this.rectBounding.setData({ ...rect, angle: this.data.angle })
-			this.rectBounding.getSourceRect()
+			this.rectBounding.setData(rect).getSourceRect()
 		}
 		if (isAppend) {
 			// 是追加的  可能作废
@@ -259,6 +262,18 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	auxiliary(ctx: CanvasRenderingContext2D) {
 		this.rectBounding.drawAttributeInit(ctx)
 		this.rectBounding.draw(ctx)
+		this.transformHandles = this.getTransformHandles(
+			this.rectBounding.limitValue,
+			0,
+			{
+				rotation: true,
+				// n: true,
+				// s: true,
+				// w: true,
+				// e: true,
+			},
+		)
+		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
 	computeCrash(p: point, lineDis: number) {
 		if (polygonCheckCrash(p, this.vertex, 10 + this.data.lineWidth / 2)) {

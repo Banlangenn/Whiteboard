@@ -280,7 +280,7 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 
 		const dashedLineMargin = 0 / zoom.value
 
-		const centeringOffset = size / (2 * zoom.value)
+		const centeringOffset = (size * 2) / (2 * zoom.value)
 
 		const transformHandles: TransformHandles = {
 			// nw 左上
@@ -404,6 +404,7 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 		transformHandles: TransformHandles,
 		angle: number,
 	): void {
+		context.fillStyle = '#fff'
 		Object.keys(transformHandles).forEach((key) => {
 			const zoomValue = 1
 			// context.
@@ -418,6 +419,11 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 				const { x, y, width, height } = transformHandle
 				if (key === 'rotation') {
 					fillCircle(context, x + width / 2, y + height / 2, width / 2)
+				} else if (context.roundRect) {
+					context.beginPath()
+					context.roundRect(x, y, width, height, 2 / zoomValue)
+					context.fill()
+					context.stroke()
 				} else {
 					strokeRectWithRotation(
 						context,
@@ -430,6 +436,7 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 						angle,
 						true, // fill before stroke
 					)
+					context.restore()
 				}
 				context.lineWidth = lineWidth
 			}
@@ -592,13 +599,11 @@ const strokeRectWithRotation = (
 ) => {
 	context.translate(cx, cy)
 	context.rotate(angle)
-	// if (fill) {
-	// 	context.fillStyle = '#fff'
-	// 	context.fillRect(x - cx, y - cy, width, height)
-	// }
-	// context.strokeRect(x - cx, y - cy, width, height)
-
-	context.fillStyle = '#fff'
+	if (fill) {
+		context.fillStyle = '#fff'
+		context.fillRect(x - cx, y - cy, width, height)
+	}
+	context.strokeRect(x - cx, y - cy, width, height)
 
 	context.rotate(-angle)
 	context.translate(-cx, -cy)
