@@ -972,6 +972,11 @@ export function polygonCheckCrash(
 // 	}
 // }
 
+export type PartialPickRequired<
+	O extends Record<any, any>,
+	P extends keyof O = {},
+> = Partial<O> & Pick<O, P>
+
 export const createShapeProperties = <T extends properties>(
 	element: Partial<T>,
 	Shape: { key: number },

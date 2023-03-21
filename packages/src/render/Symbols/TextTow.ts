@@ -86,8 +86,8 @@ export default class TextShape extends BaseShape<TextProperties> {
 	}
 	draw(context: CanvasRenderingContext2D, ignoreCache = false) {
 		const element = this.data
-
 		renderText(element, context)
+
 		this.getSourceRect()
 
 		if (this.isEdit) {
@@ -120,12 +120,11 @@ export default class TextShape extends BaseShape<TextProperties> {
 		newTextElement(
 			this.data,
 			translatePosition,
-			({ height, width }) => {
+			(height) => {
+				this.data.height = height
+				this.getSourceRect()
 				events.emit('clearCapturingCanvas')
-				ctx.beginPath()
-				const { x, y } = this.data
-				ctx.rect(x, y, width, height)
-				ctx.stroke()
+				this.auxiliary(ctx)
 			},
 			(element) => {
 				// 不能依靠这个提交
@@ -135,7 +134,9 @@ export default class TextShape extends BaseShape<TextProperties> {
 			},
 		)
 		// this.drawAttributeInit(ctx)
-		// this.draw(ctx)
+		if (this.data.width) {
+			this.auxiliary(ctx)
+		}
 	}
 	appendPoint(
 		ctx: CanvasRenderingContext2D,
@@ -163,6 +164,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 			}
 			this.getSourceRect()
 		}
+
 		events.emit('clearCapturingCanvas')
 		this.draw(ctx)
 	}
@@ -174,6 +176,8 @@ export default class TextShape extends BaseShape<TextProperties> {
 		if (this.isEdit) return
 		// 每次绘画都会 回去包围框的
 		events.emit('appendCurrentPage', this)
+
+		this.getSourceRect()
 	}
 	initPointerDownState(p = { x: 0, y: 0 }) {
 		const { x, y, width, height, angle = 0 } = this.data
@@ -209,16 +213,15 @@ export default class TextShape extends BaseShape<TextProperties> {
 			0,
 			{
 				rotation: true,
-				n: true,
-				s: true,
-				w: true,
-				e: true,
+				// n: true,
+				// s: true,
+				// w: true,
+				// e: true,
 			},
 		)
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
 	computeCrash(p: point, lineDis: number) {
-		console.log(this.limitValue)
 		const radius = lineDis - this.threshold
 		const { x, y } = p
 		if (
@@ -286,7 +289,7 @@ interface textElement {
 const newTextElement = (
 	element: textElement,
 	translatePosition: { x: number; y: number } | undefined,
-	onChange: (data: { height: number; width: number }) => void,
+	onChange: (height: number) => void,
 	onSubmit: (text: textElement) => void,
 ) => {
 	let updatedElement = { ...element }
@@ -306,6 +309,10 @@ const newTextElement = (
 			}
 		}
 
+		if (metrics.height > element.height) {
+			onChange(metrics.height)
+		}
+
 		// 没有就用里边的
 		// 1. 如果放得下- 就用外边的宽高
 		// 2. 放不下 修改外边的
@@ -321,6 +328,7 @@ const newTextElement = (
 		editable.value = updatedElement.text
 		// const lines = updatedElement.text.replace(/\r\n?/g, '\n').split('\n')
 		const lineHeight = getApproxLineHeight(getFontString(updatedElement))
+
 		const left = translatePosition
 			? updatedElement.x - translatePosition.x
 			: updatedElement.x
@@ -356,7 +364,7 @@ const newTextElement = (
 		backfaceVisibility: 'hidden',
 		margin: 0,
 		padding: 0,
-		border: `1px solid ${updatedElement.strokeColor}`,
+		border: 'none',
 		outline: 0,
 		resize: 'none',
 		background: 'transparent',
@@ -366,7 +374,7 @@ const newTextElement = (
 		// must be specified because in dark mode canvas creates a stacking context
 		wordWrap: 'break-word',
 		wordBreak: 'break-all',
-
+		boxSizing: 'content-box',
 		zIndex: '100000',
 	})
 	updateWysiwygStyle(element.text)
@@ -458,6 +466,14 @@ const renderText = (
 
 	// 根据节点的宽高 换行
 	const text = wrapText(element.text, getFontString(element), element.width)
+
+	const { height } = measureText(text, getFontString(element))
+
+	if (element.height < height) {
+		element.height = height
+	}
+
+	console.log(element.height)
 	// const getLines
 	// Canvas does not support multiline text by default
 	const lines = text.replace(/\r\n?/g, '\n').split('\n')

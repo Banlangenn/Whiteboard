@@ -17,7 +17,7 @@ import {
 import JSONData from './../../data/framework.json'
 import { Header, Loading, Message } from './../../components/index'
 function App() {
-	const creatEdit = async () => {
+	const createEdit = async () => {
 		// console.log(document.querySelector('.App'))
 		const cropInstance = createApp({
 			el: '.App',
@@ -43,7 +43,15 @@ function App() {
 	}
 
 	const init = async () => {
-		const container = await creatEdit()
+		const container = await createEdit()
+
+		const rectNode = new RectShape({
+			width: 166.25,
+			height: 163.26942231075697,
+			x: 300.5625,
+			y: 115.77851095617531,
+			color: 'red',
+		})
 
 		const imgNode = new ImageShape({
 			imageOrUri:
@@ -53,7 +61,7 @@ function App() {
 			x: 100.5625,
 			y: 115.77851095617531,
 		})
-		container.add(imgNode)
+		container.add(imgNode).add(rectNode)
 	}
 
 	useEffect(() => {

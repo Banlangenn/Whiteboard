@@ -248,9 +248,13 @@ export class Crop extends EventHub {
 			// 清除上层 canvas
 			// 在上层画 之后 要转移到下层 -- 如果都在会变粗
 			// 有些情况是不需要的
+
 			this.renderer.clearCapturingCanvas(this.context, x, y)
+
 			//  为什么加这个 + 文字失去焦点会出现
-			// this.drawGraphics(this.context.capturingCanvasContext, [this.currentGraphics])
+			this.drawGraphics(this.context.capturingCanvasContext, [
+				this.currentGraphics,
+			])
 			return
 		} else {
 			if (this._translatePosition) {

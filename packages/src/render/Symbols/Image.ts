@@ -19,15 +19,12 @@ import {
 	dragElements,
 	getResizeOffsetXY,
 	createShapeProperties,
+	PartialPickRequired,
 } from './Shape'
 import RectShape, { RectShapeProperties } from './Rect'
 export interface ImageShapeProperties extends properties {
 	imageOrUri: string | HTMLImageElement | HTMLCanvasElement
 }
-type PartialPickRequired<
-	O extends Record<keyof any, any>,
-	P extends keyof O,
-> = Partial<O> & Pick<O, P>
 
 export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	// firstPoint!: point

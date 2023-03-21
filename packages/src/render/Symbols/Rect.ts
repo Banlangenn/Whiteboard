@@ -20,13 +20,12 @@ import {
 	rotate,
 	polygonCheckCrash,
 	createShapeProperties,
+	PartialPickRequired,
 } from './Shape'
 export interface RectShapeProperties extends properties {
-	x: number
-	y: number
-	color: string
-	radius: number
-	isAuxiliary: boolean
+	color?: string
+	radius?: number
+	isAuxiliary?: boolean
 }
 
 // 传进来 state
@@ -40,7 +39,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	pointerDownState!: PointerDownState
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	rectBounding!: InstanceType<typeof RectShape>
-	constructor(userOptions: RectShapeProperties) {
+	// PartialPickRequired<ImageShapeProperties, 'imageOrUri'>
+	constructor(userOptions: PartialPickRequired<RectShapeProperties>) {
 		const defaultOptions = {
 			key: 11,
 			width: 0,
