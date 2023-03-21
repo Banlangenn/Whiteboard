@@ -36,11 +36,8 @@ function createGraphicsBase<T extends Graphics>(): (
 	...res: any[]
 ) => InstanceType<T> {
 	const shapeCache: Record<string, any> = {}
-	const imgDomCache: Record<string, unknown> = {}
-
 	return (shape, ...res) => {
 		// console.log('createGraphicsBaseres缓存params：', res)
-
 		// 实例缓存
 		if (shape.cache) {
 			const key = shape.key
@@ -922,7 +919,7 @@ export class Crop extends EventHub {
 					// 绘制老图
 					this.drawCurrentGroup()
 				} else {
-					const text = this.graphicsMap[9]
+					const text = this.graphicsMap[21]
 					this.currentGraphics = this.initGraphics(text)
 				}
 				// 绘图

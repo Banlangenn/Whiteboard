@@ -74,6 +74,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 				),
 			)
 		}
+		this.getSourceRect()
+
 		this.pointerDownState = this.initPointerDownState()
 		this.vertex = this.getVertex()
 	}

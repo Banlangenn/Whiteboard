@@ -75,6 +75,7 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 				RectShape,
 			),
 		)
+		this.getSourceRect()
 
 		// this.limitValue = this.getPointsLimitValue()
 		// this.

@@ -174,10 +174,8 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 				dragElements(this.pointerDownState, this, p)
 			}
 			this.getSourceRect()
-			e.emit('clearCapturingCanvas')
-		} else {
-			e.emit('clearCapturingCanvas')
 		}
+		e.emit('clearCapturingCanvas')
 		this.draw(ctx)
 	}
 	endPendingPoint(
