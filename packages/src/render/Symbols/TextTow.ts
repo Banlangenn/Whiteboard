@@ -23,6 +23,8 @@ import RectShape, { RectShapeProperties } from './Rect'
 export interface TextProperties extends properties {
 	text: string
 	fontSize: number
+	lineHeight: number
+	ellipsis: boolean
 	x: number
 	y: number
 	width: number
@@ -40,7 +42,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 	pointerDownState!: PointerDownState
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	rectBounding!: InstanceType<typeof RectShape>
-	prevText = ''
+
 	constructor(userOptions: TextProperties) {
 		const defaultOptions = {
 			key: 21,
@@ -50,10 +52,11 @@ export default class TextShape extends BaseShape<TextProperties> {
 			fontSize: 24,
 			width: 0,
 			height: 0,
-			baseline: 0,
 			opacity: 100,
 			textAlign: 'left',
 			isAuxiliary: false,
+			lineHeight: 24 * 1.2,
+			ellipsis: true,
 		}
 		const data = createShapeProperties<TextProperties>(
 			Object.assign(defaultOptions, userOptions, {
@@ -101,9 +104,6 @@ export default class TextShape extends BaseShape<TextProperties> {
 		events: EventHub,
 		translatePosition?: { x: number; y: number },
 	) {
-		this.prevText = this.data.text
-		// 可以做一些特别判断`
-		// start
 		if (this.isEdit) {
 			// console.log('多改动屏幕绘制开始')
 			// 记录 当前点
@@ -133,10 +133,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 				this.endPendingPoint(ctx, point, events)
 			},
 		)
-		// this.drawAttributeInit(ctx)
-		if (this.data.width) {
-			this.auxiliary(ctx)
-		}
+		this.auxiliary(ctx)
 	}
 	appendPoint(
 		ctx: CanvasRenderingContext2D,
@@ -206,6 +203,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 		}
 	}
 	auxiliary(ctx: CanvasRenderingContext2D) {
+		if (this.data.width === 0) return
 		this.rectBounding.drawAttributeInit(ctx)
 		this.rectBounding.roundRect(ctx)
 		this.transformHandles = this.getTransformHandles(
@@ -219,11 +217,13 @@ export default class TextShape extends BaseShape<TextProperties> {
 				// e: true,
 			},
 		)
+
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
 	computeCrash(p: point, lineDis: number) {
 		const radius = lineDis - this.threshold
 		const { x, y } = p
+
 		if (
 			rectCheckCrash(this.limitValue, {
 				maxX: x + radius,
@@ -274,27 +274,20 @@ export default class TextShape extends BaseShape<TextProperties> {
  * @private
  * @memberof Crop
  */
-interface textElement {
-	x: number
-	y: number
-	text: string
-	fontSize: number
-	width: number
-	height: number
-	opacity: number
-	strokeColor: string
-	textAlign: string
-}
 
 const newTextElement = (
-	element: textElement,
+	element: TextProperties,
 	translatePosition: { x: number; y: number } | undefined,
 	onChange: (height: number) => void,
-	onSubmit: (text: textElement) => void,
+	onSubmit: (text: TextProperties) => void,
 ) => {
 	let updatedElement = { ...element }
 	const updateWysiwygStyle = (text = '') => {
-		let metrics = measureText(text, getFontString(updatedElement))
+		let metrics = measureText(
+			text,
+			getFontString(updatedElement),
+			element.lineHeight,
+		)
 
 		if (element.width !== 0) {
 			// metrics.width = updatedElement.width
@@ -302,6 +295,7 @@ const newTextElement = (
 			const { height } = measureText(
 				wrapText(text, getFontString(element), element.width),
 				getFontString(updatedElement),
+				element.lineHeight,
 			)
 			metrics = {
 				height: Math.max(updatedElement.height, height),
@@ -358,7 +352,7 @@ const newTextElement = (
 	editable.wrap = 'off'
 
 	Object.assign(editable.style, {
-		position: 'fixed',
+		position: 'absolute',
 		display: 'inline-block',
 		minHeight: '1em',
 		backfaceVisibility: 'hidden',
@@ -455,7 +449,7 @@ const newTextElement = (
 }
 
 const renderText = (
-	element: textElement,
+	element: TextProperties,
 	context: CanvasRenderingContext2D,
 ) => {
 	context.save()
@@ -465,20 +459,33 @@ const renderText = (
 	context.textAlign = element.textAlign as CanvasTextAlign
 
 	// 根据节点的宽高 换行
-	const text = wrapText(element.text, getFontString(element), element.width)
+	let text = wrapText(element.text, getFontString(element), element.width)
 
-	const { height } = measureText(text, getFontString(element))
+	const { height, width } = measureText(
+		text,
+		getFontString(element),
+		element.lineHeight,
+	)
 
-	if (element.height < height) {
-		element.height = height
-	}
-
-	console.log(element.height)
 	// const getLines
 	// Canvas does not support multiline text by default
-	const lines = text.replace(/\r\n?/g, '\n').split('\n')
+	let lines = text.replace(/\r\n?/g, '\n').split('\n')
 
-	const lineHeight = getApproxLineHeight(getFontString(element)) // element.height / lines.length
+	// 最大 最小值 计算
+
+	if (element.ellipsis && height > element.height) {
+		element.height = Math.ceil(Math.max(element.height, element.lineHeight))
+		lines = lines.splice(0, element.height / element.lineHeight)
+		const lastText = lines.at(-1)
+		lines[lines.length - 1] = lastText?.slice(0, -1) + '...'
+	} else {
+		element.height = Math.ceil(Math.max(element.height, height))
+	}
+
+	element.width = Math.ceil(Math.max(element.width, width))
+	if (element.height === height) {
+		// 到达最小 y值了
+	}
 
 	const horizontalOffset =
 		element.textAlign === 'center'
@@ -491,7 +498,7 @@ const renderText = (
 		context.fillText(
 			lines[index],
 			horizontalOffset + element.x,
-			(index + 1) * lineHeight + element.y,
+			(index + 1) * element.lineHeight + element.y,
 		)
 	}
 
@@ -552,34 +559,58 @@ const getLineWidth = (text: string, font: FontString) => {
 
 	return width
 }
-export const getTextHeight = (text: string, font: FontString) => {
-	const lines = text.replace(/\r\n?/g, '\n').split('\n')
-	const lineHeight = getApproxLineHeight(font)
-	return lineHeight * lines.length
+
+export const normalizeText = (text: string) => {
+	return (
+		text
+			// replace tabs with spaces so they render and measure correctly
+			.replace(/\t/g, '        ')
+			// normalize newlines
+			.replace(/\r?\n|\r/g, '\n')
+	)
+}
+export const splitIntoLines = (text: string) => {
+	return normalizeText(text).split('\n')
+}
+
+export const getLineHeightInPx = (fontSize: number, lineHeight: number) => {
+	return fontSize * lineHeight
+}
+export const getTextHeight = (
+	text: string,
+	fontSize: number,
+	lineHeight: number,
+) => {
+	const lineCount = splitIntoLines(text).length
+
+	return lineHeight * lineCount
 }
 
 export const getTextWidth = (text: string, font: FontString) => {
-	const lines = text.replace(/\r\n?/g, '\n').split('\n')
+	const lines = splitIntoLines(text)
 	let width = 0
 	lines.forEach((line) => {
 		width = Math.max(width, getLineWidth(line, font))
 	})
 	return width
 }
-function measureText(text: string, font: FontString) {
+function measureText(text: string, font: FontString, lineHeight: number) {
 	const _text = text
 		.split('\n')
 		// replace empty lines with single space because leading/trailing empty
 		// lines would be stripped from computation
 		.map((x) => x || ' ')
 		.join('\n')
-
-	const height = getTextHeight(_text, font)
+	const fontSize = parseFloat(font)
+	const height = getTextHeight(_text, fontSize, lineHeight)
 	const width = getTextWidth(_text, font)
 
 	return { width, height }
 }
 function wrapText(text: string, font: FontString, maxWidth: number) {
+	if (!Number.isFinite(maxWidth) || maxWidth < 0) {
+		return text
+	}
 	const lines: Array<string> = []
 	const originalLines = text.split('\n')
 	const spaceWidth = getLineWidth(' ', font)
