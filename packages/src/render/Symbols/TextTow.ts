@@ -336,7 +336,7 @@ const newTextElement = (
 		}
 		editable.value = updatedElement.text
 		// const lines = updatedElement.text.replace(/\r\n?/g, '\n').split('\n')
-		const lineHeight = getApproxLineHeight(getFontString(updatedElement))
+		const lineHeight = element.lineHeight
 
 		const left = translatePosition
 			? updatedElement.x - translatePosition.x
@@ -476,6 +476,8 @@ const renderText = (
 	/* CanvasTextAlign */
 	context.textAlign = element.textAlign as CanvasTextAlign
 
+	const textHeight = getTextSelfHeight(element.fontSize)
+	const lineHeight = Math.max(element.lineHeight, textHeight)
 	// 根据节点的宽高 换行
 	let text = wrapText(element.text, getFontString(element), element.width)
 
@@ -493,7 +495,10 @@ const renderText = (
 
 	if (element.ellipsis && height > element.height) {
 		element.height = Math.ceil(Math.max(element.height, element.lineHeight))
-		lines = lines.splice(0, element.height / element.lineHeight)
+		lines = lines.splice(
+			0,
+			Math.ceil(Math.max(element.height / element.lineHeight, 1)),
+		)
 		const lastText = lines.at(-1)
 		lines[lines.length - 1] = lastText?.slice(0, -1) + '...'
 	} else {
@@ -511,12 +516,18 @@ const renderText = (
 			: element.textAlign === 'right'
 			? element.width
 			: 0
-	context.textBaseline = 'bottom'
+
+	// 行高计算
+	// element.lineHeight
+
+	// context.textBaseline = ''
+	const baseline = lineHeight > textHeight ? (lineHeight - textHeight) / 2 : 0
+
 	for (let index = 0; index < lines.length; index++) {
 		context.fillText(
 			lines[index],
 			horizontalOffset + element.x,
-			(index + 1) * element.lineHeight + element.y,
+			(index + 1) * element.lineHeight + element.y - baseline,
 		)
 	}
 
@@ -528,8 +539,6 @@ export const getFontString = ({ fontSize }: { fontSize: number }) => {
 }
 
 // ------
-
-const cacheApproxLineHeight: { [key: FontString]: number } = {}
 
 let canvas: HTMLCanvasElement | undefined
 export const charWidth = (() => {
@@ -556,17 +565,6 @@ export const charWidth = (() => {
 	}
 })()
 
-export const getApproxLineHeight = (font: FontString) => {
-	if (cacheApproxLineHeight[font]) {
-		return cacheApproxLineHeight[font]
-	}
-	const fontSize = parseInt(font, 10)
-
-	// Calculate line height relative to font size
-	cacheApproxLineHeight[font] = fontSize * 1.2
-	return cacheApproxLineHeight[font]
-}
-
 const getLineWidth = (text: string, font: FontString) => {
 	if (!canvas) {
 		canvas = document.createElement('canvas')
@@ -591,14 +589,27 @@ export const splitIntoLines = (text: string) => {
 	return normalizeText(text).split('\n')
 }
 
+const fontCache: Record<number, number> = {}
+const getTextSelfHeight = (fontSize: number) => {
+	if (fontCache[fontSize]) {
+		return fontCache[fontSize]
+	}
+	if (!canvas) {
+		canvas = document.createElement('canvas')
+	}
+	const canvas2dContext = canvas.getContext('2d')!
+	canvas2dContext.font = getFontString({ fontSize })
+	const textMetrics = canvas2dContext.measureText('M')
+	const textHeight =
+		textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent // 计算文本的高度
+	fontCache[fontSize] = textHeight
+	return textHeight
+}
+
 export const getLineHeightInPx = (fontSize: number, lineHeight: number) => {
 	return fontSize * lineHeight
 }
-export const getTextHeight = (
-	text: string,
-	fontSize: number,
-	lineHeight: number,
-) => {
+export const getTextHeight = (text: string, lineHeight: number) => {
 	const lineCount = splitIntoLines(text).length
 
 	return lineHeight * lineCount
@@ -619,8 +630,8 @@ function measureText(text: string, font: FontString, lineHeight: number) {
 		// lines would be stripped from computation
 		.map((x) => x || ' ')
 		.join('\n')
-	const fontSize = parseFloat(font)
-	const height = getTextHeight(_text, fontSize, lineHeight)
+	// const fontSize = parseFloat(font)
+	const height = getTextHeight(_text, lineHeight)
 	const width = getTextWidth(_text, font)
 
 	return { width, height }

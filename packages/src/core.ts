@@ -1231,28 +1231,6 @@ export class Crop extends EventHub {
 		// this.renderer.drawModel(this.context, this.model, strokes)
 	}
 
-	// 把 清屏和 画布-- 集中到一起 然后好出来 是否画画
-	/**
-	 *  绘制临时画布的 内容
-	 *
-	 * @param {editDataI} strokes
-	 * @memberof Crop
-	 */
-
-	public capturingDrawCurrentStroke(strokes: any) {
-		if (!this.canRender) return
-		// 有偏移量 走偏移量的
-		// if (this._translatePosition) {
-		// 	this.renderer.translateDrawCurrentStroke(
-		// 		this.context,
-		// 		this.model,
-		// 		this._translatePosition,
-		// 		strokes,
-		// 	)
-		// } else {
-		// 	this.renderer.drawCurrentStroke(this.context, this.model, strokes)
-		// }
-	}
 	// 创建标签
 	// PathNode 必须是一个数组  例如 刘  可能就是三笔才能填进来
 	// TODO: 要知道他 原来的的 宽高 好算现在的宽高  保持一致大小
@@ -1280,19 +1258,48 @@ export class Crop extends EventHub {
 		// 获取最大 最小值
 		//
 	}
+
+	// 把 清屏和 画布-- 集中到一起 然后好出来 是否画画
+	/**
+	 *  绘制临时画布的 内容
+	 *
+	 * @param {editDataI} strokes
+	 * @memberof Crop
+	 */
+
+	public capturingDrawCurrentStroke() {
+		if (!this.canRender) return
+		this.renderer.clearCapturingCanvas(this.context)
+		if (this.currentGraphics) {
+			this.drawGraphics(
+				this.context.capturingCanvasContext,
+				this.currentGraphics,
+			)
+		}
+		// 有偏移量 走偏移量的
+		// if (this._translatePosition) {
+		// 	this.renderer.translateDrawCurrentStroke(
+		// 		this.context,
+		// 		this.model,
+		// 		this._translatePosition,
+		// 		strokes,
+		// 	)
+		// } else {
+		// 	this.renderer.drawCurrentStroke(this.context, this.model, strokes)
+		// }
+	}
+
+	public capturingGraphicsToRender() {
+		if (!this.currentGraphics) return
+		this.currentGraphics.setEditStatus(false)
+		this.drawGraphics(this.context.renderingCanvasContext, this.currentGraphics)
+		this.currentPage.push(this.currentGraphics)
+	}
 	public add(g: GraphicsIns) {
 		if (g.isEdit) {
-			if (this.currentGraphics) {
-				this.renderer.clearCapturingCanvas(this.context)
-				this.currentGraphics.setEditStatus(false)
-				this.drawGraphics(
-					this.context.renderingCanvasContext,
-					this.currentGraphics,
-				)
-				this.currentPage.push(this.currentGraphics)
-			}
+			this.capturingGraphicsToRender()
 			this.currentGraphics = g
-			this.drawGraphics(this.context.capturingCanvasContext, g)
+			this.capturingDrawCurrentStroke()
 		} else {
 			this.drawGraphics(this.context.renderingCanvasContext, g)
 			this.currentPage.push(g)

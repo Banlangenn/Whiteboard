@@ -64,6 +64,7 @@ function App() {
 		const textNode = new TextTowShape({
 			text: '刘继伟',
 			x: 400.5625,
+			lineHeight: 60,
 			y: 115.77851095617531,
 		})
 		container.add(imgNode).add(rectNode).add(textNode)
