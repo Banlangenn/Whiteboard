@@ -17,6 +17,7 @@ import {
 	transformElements,
 	dragElements,
 	getResizeOffsetXY,
+	PartialPickRequired,
 } from './Shape'
 import RectShape, { RectShapeProperties } from './Rect'
 
@@ -29,7 +30,6 @@ export interface TextProperties extends properties {
 	y: number
 	width: number
 	height: number
-	baseline: number
 	opacity: number
 	strokeColor: string // color
 	textAlign: string
@@ -43,7 +43,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	rectBounding!: InstanceType<typeof RectShape>
 
-	constructor(userOptions: TextProperties) {
+	constructor(userOptions: PartialPickRequired<TextProperties>) {
 		const defaultOptions = {
 			key: 21,
 			x: 0,
@@ -52,18 +52,33 @@ export default class TextShape extends BaseShape<TextProperties> {
 			fontSize: 24,
 			width: 0,
 			height: 0,
+			color: '#f60',
 			opacity: 100,
 			textAlign: 'left',
 			isAuxiliary: false,
 			lineHeight: 24 * 1.2,
 			ellipsis: true,
 		}
+
+		if (userOptions.text) {
+			const { height, width } = measureText(
+				userOptions.text,
+				getFontString({
+					fontSize: userOptions?.fontSize || defaultOptions.fontSize,
+				}),
+				userOptions.lineHeight || defaultOptions.lineHeight,
+			)
+			defaultOptions.height = height
+			defaultOptions.width = width
+		}
+
 		const data = createShapeProperties<TextProperties>(
 			Object.assign(defaultOptions, userOptions, {
 				strokeColor: userOptions.color,
 			}),
 			TextShape,
 		)
+
 		super(data)
 
 		this.data = data
@@ -87,6 +102,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 			this.threshold = 0
 		}
 	}
+
 	draw(context: CanvasRenderingContext2D, ignoreCache = false) {
 		const element = this.data
 		renderText(element, context)
@@ -104,6 +120,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 		events: EventHub,
 		translatePosition?: { x: number; y: number },
 	) {
+		// TODO: 存在问题 ---- 把文字放在别的图形（图片）上面 - 点击会选中其他的图形， 会造成 文字丢失
 		if (this.isEdit) {
 			// console.log('多改动屏幕绘制开始')
 			// 记录 当前点
@@ -277,10 +294,10 @@ export default class TextShape extends BaseShape<TextProperties> {
  */
 
 const newTextElement = (
-	element: TextProperties,
+	element: Required<TextProperties>,
 	translatePosition: { x: number; y: number } | undefined,
 	onChange: (height: number) => void,
-	onSubmit: (text: TextProperties) => void,
+	onSubmit: (text: Required<TextProperties>) => void,
 ) => {
 	let updatedElement = { ...element }
 	const updateWysiwygStyle = (text = '') => {
@@ -449,12 +466,13 @@ const newTextElement = (
 }
 
 const renderText = (
-	element: TextProperties,
+	element: Required<TextProperties>,
 	context: CanvasRenderingContext2D,
 ) => {
 	context.save()
 	context.font = getFontString(element)
-	context.fillStyle = element.strokeColor
+
+	context.fillStyle = element.strokeColor || element.color
 	/* CanvasTextAlign */
 	context.textAlign = element.textAlign as CanvasTextAlign
 

@@ -1284,6 +1284,7 @@ export class Crop extends EventHub {
 		if (g.isEdit) {
 			if (this.currentGraphics) {
 				this.renderer.clearCapturingCanvas(this.context)
+				this.currentGraphics.setEditStatus(false)
 				this.drawGraphics(
 					this.context.renderingCanvasContext,
 					this.currentGraphics,

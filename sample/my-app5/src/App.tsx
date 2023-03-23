@@ -61,7 +61,12 @@ function App() {
 			x: 100.5625,
 			y: 115.77851095617531,
 		})
-		container.add(imgNode).add(rectNode)
+		const textNode = new TextTowShape({
+			text: '刘继伟',
+			x: 400.5625,
+			y: 115.77851095617531,
+		})
+		container.add(imgNode).add(rectNode).add(textNode)
 	}
 
 	useEffect(() => {

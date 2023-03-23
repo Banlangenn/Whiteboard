@@ -9,7 +9,7 @@ import GroupShape, { InnerGroupShape } from './render/Symbols/Group'
 import { createImage, loadImage, computeMaxArea } from './utils'
 import Logger from './model/logger'
 
-import { createApp } from './core'
+import { createApp, Crop } from './core'
 
 export {
 	createApp,
@@ -25,4 +25,5 @@ export {
 	createImage,
 	loadImage,
 	computeMaxArea,
+	Crop,
 }
