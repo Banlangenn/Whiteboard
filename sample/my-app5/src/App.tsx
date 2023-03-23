@@ -23,7 +23,7 @@ function App() {
 			el: '.App',
 			penColor: '#f80',
 			penWidth: 2,
-			status: 299,
+			status: 211,
 			canDraw: true,
 			canRender: true,
 			nativeEventStop: false,

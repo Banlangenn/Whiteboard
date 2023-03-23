@@ -118,7 +118,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 		this.data = { ...this.data, ...point }
 
 		newTextElement(
-			this.data,
+			{ ...this.data },
 			translatePosition,
 			(height) => {
 				this.data.height = height
@@ -129,6 +129,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 			(element) => {
 				// 不能依靠这个提交
 				//  依靠就会出问题
+
 				this.data = { ...this.data, ...element }
 				this.endPendingPoint(ctx, point, events)
 			},
@@ -286,12 +287,10 @@ const newTextElement = (
 		let metrics = measureText(
 			text,
 			getFontString(updatedElement),
-			element.lineHeight,
+			updatedElement.lineHeight,
 		)
 
 		if (element.width !== 0) {
-			// metrics.width = updatedElement.width
-
 			const { height } = measureText(
 				wrapText(text, getFontString(element), element.width),
 				getFontString(updatedElement),
@@ -303,7 +302,7 @@ const newTextElement = (
 			}
 		}
 
-		if (metrics.height > element.height) {
+		if (element.height !== 0 && metrics.height > element.height) {
 			onChange(metrics.height)
 		}
 
@@ -313,9 +312,8 @@ const newTextElement = (
 
 		updatedElement = {
 			...updatedElement,
+			...metrics,
 			text,
-			width: metrics.width,
-			height: metrics.height,
 			// baseline:,
 			opacity: 100,
 		}
@@ -345,6 +343,7 @@ const newTextElement = (
 	}
 
 	const editable = document.createElement('textarea')
+
 	editable.dir = 'auto'
 	editable.tabIndex = 0
 	// editable.dataset.type = 'wysiwyg'
@@ -371,7 +370,7 @@ const newTextElement = (
 		boxSizing: 'content-box',
 		zIndex: '100000',
 	})
-	updateWysiwygStyle(element.text)
+	updateWysiwygStyle(updatedElement.text)
 	editable.oninput = () => {
 		updateWysiwygStyle(normalizeText(editable.value))
 	}
@@ -385,13 +384,13 @@ const newTextElement = (
 		)
 	}
 	const handleSubmit = () => {
-		// onSubmit(normalizeText(editable.value))
-		// console.log('handleSubmit', normalizeText(editable.value), isDestroyed)
+		if (editable.value) {
+			updatedElement.text = normalizeText(editable.value)
+			onSubmit(updatedElement)
+		}
 
-		onSubmit(updatedElement)
 		cleanup()
 	}
-
 	const cleanup = () => {
 		if (isDestroyed) {
 			return
@@ -437,15 +436,16 @@ const newTextElement = (
 
 	editable.onblur = handleSubmit
 
-	// window.addEventListener('pointerdown', onPointerDown)
 	window.addEventListener('wheel', stopEvent, {
 		passive: false,
 		capture: true,
 	})
 
 	document.querySelector('.canvas-container')?.appendChild(editable)
-	editable.focus()
-	editable.select()
+	setTimeout(() => {
+		editable.focus()
+		editable.select()
+	}, 100)
 }
 
 const renderText = (

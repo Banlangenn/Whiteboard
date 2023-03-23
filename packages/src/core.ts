@@ -251,10 +251,6 @@ export class Crop extends EventHub {
 
 			this.renderer.clearCapturingCanvas(this.context, x, y)
 
-			//  为什么加这个 + 文字失去焦点会出现
-			this.drawGraphics(this.context.capturingCanvasContext, [
-				this.currentGraphics,
-			])
 			return
 		} else {
 			if (this._translatePosition) {
@@ -438,6 +434,12 @@ export class Crop extends EventHub {
 					this.currentPage.push(g)
 				}
 				this.drawCurrentGroup(g)
+				//  为什么加这个 + 文字失去焦点会出现 - 点击别的图形
+				if (this.currentGraphics) {
+					this.drawGraphics(this.context.capturingCanvasContext, [
+						this.currentGraphics,
+					])
+				}
 			},
 		)
 		this.events.on('crashRemove', (point, radius) => {
@@ -451,6 +453,7 @@ export class Crop extends EventHub {
 				this.drawCurrentGroup()
 			}
 		})
+
 		this.events.on('selectGraphics', (limit) => {
 			// console.log(limit)
 			const limitValue = limit as limitValue
@@ -952,7 +955,12 @@ export class Crop extends EventHub {
 				// 不返回了 动态计算当前的偏移量
 				// 绘图 当前的
 				// console.log('刚点中的是：graphics, 即将绘制', this.currentGraphics)
-				this.currentGraphics?.initPending(context, point, events)
+				this.currentGraphics?.initPending(
+					context,
+					point,
+					events,
+					this._translatePosition,
+				)
 
 				// 有延迟 导致内部先move  后 init  出bug
 				// setTimeout(() => {
