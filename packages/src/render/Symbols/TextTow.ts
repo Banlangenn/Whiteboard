@@ -497,7 +497,7 @@ const renderText = (
 		element.height = Math.ceil(Math.max(element.height, element.lineHeight))
 		lines = lines.splice(
 			0,
-			Math.ceil(Math.max(element.height / element.lineHeight, 1)),
+			Math.floor(Math.max(element.height / element.lineHeight, 1)),
 		)
 		const lastText = lines.at(-1)
 		lines[lines.length - 1] = lastText?.slice(0, -1) + '...'

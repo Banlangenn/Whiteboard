@@ -111,6 +111,7 @@ export interface properties {
 		path: Path2D
 		end: boolean
 	} | null
+	[x: string]: any
 }
 
 // 外边会用到的

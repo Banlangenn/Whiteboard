@@ -91,6 +91,15 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 			return ''
 		}
 	}
+	setData(data: Partial<ImageShapeProperties>): this {
+		const imageOrUri = this.data.imageOrUri
+		super.setData(data)
+		if (this.data.imageOrUri !== imageOrUri) {
+			this.image = undefined as any
+		}
+
+		return this
+	}
 
 	initPointerDownState(p = { x: 0, y: 0 }) {
 		const { x, y, width, height, angle = 0 } = this.data
@@ -107,7 +116,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		const { width, height, x, y } = this.data
 		this.limitValue = getRectLimitValue({ x, y }, width, height, this.threshold)
 		const rect = getLimit2Rect(this.limitValue)
-		this.rectBounding.setData(rect).getSourceRect()
+		this.rectBounding?.setData(rect).getSourceRect()
 	}
 	auxiliary(ctx: CanvasRenderingContext2D) {
 		this.rectBounding.drawAttributeInit(ctx)

@@ -450,6 +450,10 @@ export class Crop extends EventHub {
 			// 组内的 怎么碰撞 --- 碰撞要特殊处理
 			const graphics = this.getCrashActiveLineAndRemove(this.currentPage, p, r)
 			if (graphics.length) {
+				// TODO: 理想的情况
+				// 取出来 影响的几个
+				// 重绘 那块区域
+				// --- 回头在看
 				this.drawCurrentGroup()
 			}
 		})
@@ -1271,6 +1275,7 @@ export class Crop extends EventHub {
 		if (!this.canRender) return
 		this.renderer.clearCapturingCanvas(this.context)
 		if (this.currentGraphics) {
+			this.currentGraphics?.getSourceRect()
 			this.drawGraphics(
 				this.context.capturingCanvasContext,
 				this.currentGraphics,
@@ -1293,7 +1298,9 @@ export class Crop extends EventHub {
 		if (!this.currentGraphics) return
 		this.currentGraphics.setEditStatus(false)
 		this.drawGraphics(this.context.renderingCanvasContext, this.currentGraphics)
+		this.renderer.clearCapturingCanvas(this.context)
 		this.currentPage.push(this.currentGraphics)
+		this.currentGraphics = null as any
 	}
 	public add(g: GraphicsIns) {
 		if (g.isEdit) {
@@ -1305,28 +1312,63 @@ export class Crop extends EventHub {
 			this.currentPage.push(g)
 		}
 
-		const data = g.getData()
-		this.history.pushEntry(
-			{
-				name: 'xxxx',
-				selectedElementIds: {
-					[data.id]: true,
-				},
-			},
-			this.currentPage.map((e) => e.getData()).concat(data),
-		)
+		// const data = g.getData()
+		// this.history.pushEntry(
+		// 	{
+		// 		name: 'xxxx',
+		// 		selectedElementIds: {
+		// 			[data.id]: true,
+		// 		},
+		// 	},
+		// 	this.currentPage.map((e) => e.getData()).concat(data),
+		// )
 		this.emit('updateModel')
 		return this
 	}
 
 	// 获取编辑状态的对象
-	public getActiveObject() {
+	public getActiveGraphics() {
 		if (this.currentGraphics?.isEdit) {
 			return this.currentGraphics
 		}
 		return undefined
 	}
 
+	// 根据id 获取Graphics
+	public getGraphicsById(id: string, out = false) {
+		for (let index = 0; index < this.currentPage.length; index++) {
+			const item = this.currentPage[index]
+			if (item.data.id === id) {
+				if (out) {
+					this.currentPage.splice(index, 1)
+				}
+				return item
+			}
+		}
+
+		return undefined
+	}
+
+	public setCurrentGraphicsById(id: string) {
+		const graphics = this.getGraphicsById(id, true)
+		if (graphics) {
+			this.capturingGraphicsToRender()
+			graphics.setEditStatus(true)
+			this.currentGraphics = graphics
+			this.capturingDrawCurrentStroke()
+		}
+	}
+
+	public repaintGraphicsById(graphics: GraphicsIns) {
+		// TODO: 理想的情况
+		// 取出来 影响的几个
+		// 重绘 那块区域
+		// 没有变化
+		this.currentGraphics = graphics
+		// 绘制当前的-
+		// 把老的绘制一下
+		this.drawCurrentGroup()
+	}
 	/**
 	 *添加组件
 	 *

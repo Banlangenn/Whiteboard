@@ -66,6 +66,7 @@ function App() {
 			x: 400.5625,
 			lineHeight: 60,
 			y: 115.77851095617531,
+			color: 'red',
 		})
 		container.add(imgNode).add(rectNode).add(textNode)
 	}
