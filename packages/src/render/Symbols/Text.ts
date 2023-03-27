@@ -66,6 +66,8 @@ export default class TextShape extends BaseShape<TextProperties> {
 						isAuxiliary: true,
 						color: '#6965db',
 						lineWidth: 1,
+						fill: false,
+						radius: 0,
 					},
 					RectShape,
 				),

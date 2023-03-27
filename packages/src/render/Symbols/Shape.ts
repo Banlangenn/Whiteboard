@@ -221,11 +221,20 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 	setDisabledStatus(b: boolean) {
 		this.disabled = b
 	}
-	setData(data: Partial<T>): this {
+	setData(
+		data: Omit<Partial<T>, 'key' | 'version' | 'versionNonce' | 'id'>,
+	): this {
 		// console.log('setData', data)
 		this.data = {
 			...this.data,
 			...data,
+			// 有些东西不能够改掉的
+			...{
+				key: this.data.key,
+				version: this.data.version,
+				versionNonce: this.data.versionNonce,
+				id: this.data.id,
+			},
 		}
 		return this
 	}

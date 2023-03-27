@@ -69,6 +69,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 						isAuxiliary: true,
 						color: '#6965db',
 						lineWidth: 1,
+						radius: 0,
+						fill: false,
 					},
 					RectShape,
 				),
@@ -83,8 +85,11 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	roundRect(context: CanvasRenderingContext2D, ignoreCache = false) {
 		const { x, y, width, height, radius } = this.data
 		if (context.roundRect) {
+			const { minY, minX, maxX, maxY } = this.limitValue
+			const cx = (minX + maxX) / 2
+			const cy = (minY + maxY) / 2
 			context.beginPath()
-			context.roundRect(x, y, width, height, radius)
+			context.roundRect(x - cx, y - cy, width, height, radius)
 			if (this.data.fill) {
 				context.fill()
 			}

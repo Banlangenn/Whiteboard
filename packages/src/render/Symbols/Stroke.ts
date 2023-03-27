@@ -71,6 +71,8 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 					y: 0,
 					color: '#6965db',
 					lineWidth: 1,
+					fill: false,
+					radius: 0,
 				},
 				RectShape,
 			),

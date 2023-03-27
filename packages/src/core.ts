@@ -988,25 +988,24 @@ export class Crop extends EventHub {
 	}
 
 	// 直接把相关图形一步划进去
-	public appendToImage(data: properties & { key: number }): void {
+	public appendToImage(data: Partial<properties> & { key: number }): void {
 		const G = this.graphicsMap[data.key]
 		const g = createGraphics(G, data, this.events)
-		g.getSourceRect(true)
-		this.currentPage.push(g)
+		g.setEditStatus(true)
+		this.add(g)
 
 		// 历史记录
 		this.history.pushEntry(
 			{
 				name: 'xxxx',
 				selectedElementIds: {
-					[data.id]: true,
+					[g.getData().id]: true,
 				},
 			},
 			this.currentPage.map((e) => e.getData()),
 		)
 		this.emit('updateModel')
 	}
-
 	// 我需要当前实例-- 只能够俄罗斯套娃--
 	// public play() {
 	//     this._player.play(this)
@@ -1352,6 +1351,17 @@ export class Crop extends EventHub {
 	public setCurrentGraphicsById(id: string) {
 		const graphics = this.getGraphicsById(id, true)
 		if (graphics) {
+			this.capturingGraphicsToRender()
+			graphics.setEditStatus(true)
+			this.currentGraphics = graphics
+			this.capturingDrawCurrentStroke()
+		}
+	}
+
+	public changeGraphicsById(id: string, data: properties) {
+		const graphics = this.getGraphicsById(id, true)
+		if (graphics) {
+			graphics.setData(data)
 			this.capturingGraphicsToRender()
 			graphics.setEditStatus(true)
 			this.currentGraphics = graphics

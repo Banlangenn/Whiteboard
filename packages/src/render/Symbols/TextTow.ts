@@ -94,6 +94,8 @@ export default class TextShape extends BaseShape<TextProperties> {
 						isAuxiliary: true,
 						color: '#6965db',
 						lineWidth: 1,
+						fill: false,
+						radius: 0,
 					},
 					RectShape,
 				),
@@ -223,7 +225,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 	auxiliary(ctx: CanvasRenderingContext2D) {
 		if (this.data.width === 0) return
 		this.rectBounding.drawAttributeInit(ctx)
-		this.rectBounding.roundRect(ctx)
+		this.rectBounding.draw(ctx)
 		this.transformHandles = this.getTransformHandles(
 			this.rectBounding.limitValue,
 			0,

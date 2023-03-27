@@ -49,6 +49,7 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 					lineWidth: 1,
 					radius: 8,
 					isDash: true,
+					fill: false,
 				},
 				RectShape,
 			),
