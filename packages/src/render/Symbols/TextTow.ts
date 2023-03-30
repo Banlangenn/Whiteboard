@@ -122,7 +122,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 		events: EventHub,
 		translatePosition?: { x: number; y: number },
 	) {
-		// TODO: 存在问题 ---- 把文字放在别的图形（图片）上面 - 点击会选中其他的图形， 会造成 文字丢失
+		// TODO: 文字再打开输入框的时候-点击会穿透到下层图形 造成选中
 		if (this.isEdit) {
 			// console.log('多改动屏幕绘制开始')
 			// 记录 当前点
@@ -261,11 +261,10 @@ export default class TextShape extends BaseShape<TextProperties> {
 			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
-				this.pointerDownState.offset = getResizeOffsetXY(
-					maybeTransformHandleType,
-					this,
-					p,
-				)
+				this.pointerDownState = {
+					...(this.pointerDownState || {}),
+					offset: getResizeOffsetXY(maybeTransformHandleType, this, p),
+				}
 				return true
 			}
 		}
@@ -481,7 +480,7 @@ const renderText = (
 	const textHeight = getTextSelfHeight(element.fontSize)
 	const lineHeight = Math.max(element.lineHeight, textHeight)
 	// 根据节点的宽高 换行
-	let text = wrapText(element.text, getFontString(element), element.width)
+	const text = wrapText(element.text, getFontString(element), element.width)
 
 	const { height, width } = measureText(
 		text,
@@ -537,7 +536,7 @@ const renderText = (
 }
 export type FontString = string & { _brand: 'fontString' }
 export const getFontString = ({ fontSize }: { fontSize: number }) => {
-	return `${fontSize}px hachure, Segoe UI Emoji` as FontString
+	return `normal 400 ${fontSize}px hachure, Segoe UI Emoji` as FontString
 }
 
 // ------

@@ -210,11 +210,10 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
-				this.pointerDownState.offset = getResizeOffsetXY(
-					maybeTransformHandleType,
-					this,
-					p,
-				)
+				this.pointerDownState = {
+					...(this.pointerDownState || {}),
+					offset: getResizeOffsetXY(maybeTransformHandleType, this, p),
+				}
 				return true
 			}
 		}

@@ -1119,9 +1119,15 @@ export class Crop extends EventHub {
 	// 	this.capturingDrawCurrentStroke(newCrashActiveLine)
 	// }
 
-	getCurrentPageData() {
+	/**
+	 *
+	 * @param append 要不要把编辑 的图形 丢进全局
+
+	 * @returns
+	 */
+	getCurrentPageData(append = true) {
 		const currentG = this.currentGraphics
-		if (currentG) {
+		if (append && currentG) {
 			currentG.setEditStatus(false)
 			this.events.emit('appendCurrentPage', currentG)
 			this.currentGraphics = null as any

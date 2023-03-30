@@ -301,12 +301,10 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
-				// this.getSourceRect()
-				this.pointerDownState.offset = getResizeOffsetXY(
-					maybeTransformHandleType,
-					this,
-					p,
-				)
+				this.pointerDownState = {
+					...(this.pointerDownState || {}),
+					offset: getResizeOffsetXY(maybeTransformHandleType, this, p),
+				}
 				return true
 			}
 			// 在矩形内
@@ -322,7 +320,12 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			events.emit('appendCurrentPage', this)
 			//  需要重绘当前的图
 		} else {
-			if (polygonCheckCrash(p, this.vertex, this.threshold)) {
+			if (this.data.fill) {
+				if (rectCheckCrashPoint(this.limitValue, p)) {
+					this.pointerDownState.startPoint = p
+					return true
+				}
+			} else if (polygonCheckCrash(p, this.vertex, this.threshold)) {
 				this.pointerDownState.startPoint = p
 				return true
 			}
