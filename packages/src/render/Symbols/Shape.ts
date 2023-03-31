@@ -144,6 +144,7 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 			this.appendPointCallTimes = 0
 		})
 
+		// TODO: 这写个黑魔法放在 core写 更好
 		this.endPendingPoint = fnAfter(
 			this,
 			this.endPendingPoint,

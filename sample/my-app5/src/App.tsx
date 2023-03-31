@@ -44,6 +44,7 @@ function App() {
 
 	const init = async () => {
 		const container = await createEdit()
+		container.use({ type: Header, name: 'Header' })
 
 		const rectNode = new RectShape({
 			width: 166.25,

@@ -114,7 +114,8 @@ export class Crop extends EventHub {
 	private history: InstanceType<typeof History>
 	constructor(option: Required<CropProps>, ready?: (...arg: any[]) => void) {
 		super([
-			'data',
+			'run', // 不同操作
+			'data', // 同步笔记
 			'ready',
 			'penColor',
 			'focus',
@@ -720,7 +721,7 @@ export class Crop extends EventHub {
 		if (this.canRender) {
 			this.renderer.clearCanvas(this.context)
 		}
-		this.emit('data', { v: { value: '', name: 'clear' }, t: Date.now() })
+		this.emit('data', { data: null, name: 'clear', t: Date.now() })
 	}
 	// 只带有 get不带有 set的存取器自动被推断为 readonly
 
@@ -773,7 +774,7 @@ export class Crop extends EventHub {
 
 		this.drawCurrentGroup()
 
-		this.emit('data', { v: { value: '', name: event }, t: Date.now() })
+		this.emit('data', { data: null, name: event, t: Date.now() })
 	}
 
 	/**
@@ -900,20 +901,26 @@ export class Crop extends EventHub {
 	public handleTouchEvent(event: localTouchEvent) {
 		// 这里有问题
 		const { type, point } = event
-		this.emit('data', { v: { ...this.state, point, type }, t: point.t })
+		this.emit('data', {
+			data: { ...this.state, point },
+			name: type,
+			time: point.t,
+		})
 		const context = this.context.capturingCanvasContext
 		const events = this.events
 		switch (type) {
-			case eventType.DBLCLICK: {
-				// 判断是否点到 当前的字体上了
-				// 1. 获取当前的所有在可视区域的图形
-				// 2. 遍历 是否点中某一个
-				// 3. 取出来 转入编辑模式
-				// 4. 怎么复用以前逻辑
+			case eventType.DBLCLICK:
+			case eventType.DOWN: {
 				const graphics = this.getSelectGraphics(point)
+
 				if (graphics) {
-					// 没有变化
-					if (graphics.name === '文字' && graphics === this.currentGraphics) {
+					const isClickSelf = graphics === this.currentGraphics
+
+					if (
+						type === eventType.DBLCLICK &&
+						graphics.name === '文字' &&
+						isClickSelf
+					) {
 						this.events.emit('clearCapturingCanvas')
 						// 双击自己
 						graphics.setEditStatus(false)
@@ -926,36 +933,25 @@ export class Crop extends EventHub {
 						)
 						return
 					}
-					this.currentGraphics = graphics
-					// 绘制老图
-					this.drawCurrentGroup()
+
+					//  已经在编辑- 又被点中
+					if (!isClickSelf) {
+						// 没有变化
+						this.currentGraphics = graphics
+						// 绘制当前的-
+						// 把老的绘制一下
+						this.drawCurrentGroup()
+					}
 				} else {
-					const text = this.graphicsMap[21]
-					this.currentGraphics = this.initGraphics(text)
+					const penStatus =
+						type === eventType.DBLCLICK ? 21 : this.state.penStatus
+					this.currentGraphics = this.initGraphics(this.graphicsMap[penStatus])
 				}
-				// 绘图
-				this.currentGraphics?.initPending(
-					context,
-					point,
-					events,
-					this._translatePosition,
-				)
-				break
-			}
-			case eventType.DOWN: {
-				// console.log('this._penStatus', this._penStatus)
-				const graphics = this.getSelectGraphics(point)
-				if (graphics) {
-					// 没有变化
-					this.currentGraphics = graphics
-					// 绘制当前的-
-					// 把老的绘制一下
-					this.drawCurrentGroup()
-				} else {
-					this.currentGraphics = this.initGraphics(
-						this.graphicsMap[this.state.penStatus],
-					)
-				}
+				this.emit('run', {
+					data: graphics?.getData(),
+					name: 'activeChange',
+					time: point.t,
+				})
 				// 不返回了 动态计算当前的偏移量
 				// 绘图 当前的
 				// console.log('刚点中的是：graphics, 即将绘制', this.currentGraphics)
@@ -976,14 +972,23 @@ export class Crop extends EventHub {
 			}
 			case eventType.MOVE:
 				this.currentGraphics?.appendPoint(context, point, events)
+
 				// 如果没有出发move
 				break
 			case eventType.UP:
 				this.currentGraphics?.endPendingPoint(context, point, events)
+
 				break
 			default:
 				logger.warn(`type,没有实现  ${type}`)
 				break
+		}
+		if (this.currentGraphics) {
+			this.emit('run', {
+				time: Date.now(),
+				data: this.currentGraphics.getData(),
+				name: 'activeDataChange',
+			})
 		}
 	}
 
