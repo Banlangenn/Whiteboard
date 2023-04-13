@@ -24,7 +24,7 @@ import {
 } from './Shape'
 export interface RectShapeProperties extends properties {
 	color?: string
-	radius?: number
+	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>
 	isAuxiliary?: boolean
 }
 
@@ -84,34 +84,11 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 
 	roundRect(context: CanvasRenderingContext2D, ignoreCache = false) {
 		const { x, y, width, height, radius } = this.data
-		if (context.roundRect) {
-			const { minY, minX, maxX, maxY } = this.limitValue
-			const cx = (minX + maxX) / 2
-			const cy = (minY + maxY) / 2
-			context.beginPath()
-			context.roundRect(x - cx, y - cy, width, height, radius)
-			if (this.data.fill) {
-				context.fill()
-			}
-			context.stroke()
-			return
-		}
+		const { minY, minX, maxX, maxY } = this.limitValue
+		const cx = (minX + maxX) / 2
+		const cy = (minY + maxY) / 2
 		context.beginPath()
-		context.moveTo(x + radius, y)
-		context.lineTo(x + width - radius, y)
-		context.quadraticCurveTo(x + width, y, x + width, y + radius)
-		context.lineTo(x + width, y + height - radius)
-		context.quadraticCurveTo(
-			x + width,
-			y + height,
-			x + width - radius,
-			y + height,
-		)
-		context.lineTo(x + radius, y + height)
-		context.quadraticCurveTo(x, y + height, x, y + height - radius)
-		context.lineTo(x, y + radius)
-		context.quadraticCurveTo(x, y, x + radius, y)
-		context.closePath()
+		context.roundRect(x - cx, y - cy, width, height, radius)
 		if (this.data.fill) {
 			context.fill()
 		}

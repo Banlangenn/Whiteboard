@@ -23,6 +23,7 @@ import {
 } from './Shape'
 import RectShape, { RectShapeProperties } from './Rect'
 export interface ImageShapeProperties extends properties {
+	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>
 	imageOrUri: string | HTMLImageElement | HTMLCanvasElement
 }
 
@@ -82,7 +83,10 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		this.pointerDownState = this.initPointerDownState()
 	}
 	// 生成历史记录-序列化的时候 imgDom 会被干掉- 所以存起来的必须是 uri
-	getImageSrc(image: HTMLImageElement | HTMLCanvasElement) {
+	getImageSrc(image?: HTMLImageElement | HTMLCanvasElement | string) {
+		if (typeof image === 'string') {
+			return image
+		}
 		if (image) {
 			if ('toDataURL' in image) {
 				return image.toDataURL()
@@ -94,10 +98,13 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		}
 	}
 	setData(data: Partial<ImageShapeProperties>): this {
-		const imageOrUri = this.data.imageOrUri
+		const oldUri = this.getImageSrc(this.data.imageOrUri)
+
 		super.setData(data)
-		if (this.data.imageOrUri !== imageOrUri) {
-			this.image = undefined as any
+		const newUri = this.getImageSrc(this.data.imageOrUri)
+
+		if (newUri !== oldUri) {
+			this.initImageData()
 		}
 
 		return this
@@ -141,13 +148,18 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		// 取走一个点 能够拿到x，y
 		// 所谓缓存都是用 canvas  再画一个放在 一个
 
-		if (!this.image) {
-			await this.initImageData()
+		const { x, y, width, height, radius } = this.data
+
+		if (radius) {
+			ctx.save()
+			ctx.beginPath()
+			ctx.roundRect(x, y, width, height, radius)
+			ctx.clip() // 将绘制区域限制在圆角矩形内
+			ctx.drawImage(this.image, x, y, width, height)
+			ctx.restore()
+		} else {
+			ctx.drawImage(this.image, x, y, width, height)
 		}
-
-		const { x, y, width, height } = this.data
-
-		ctx.drawImage(this.image, x, y, width, height)
 
 		if (this.isEdit) {
 			this.auxiliary(ctx)

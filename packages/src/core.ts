@@ -297,10 +297,10 @@ export class Crop extends EventHub {
 			await strokesRef.draw(ctx, true)
 		}
 	}
-	getSelectGraphics(point: point): GraphicsIns | undefined {
+	getSelectGraphics(point: point): GraphicsIns | null {
 		// 初始化 上来的 没有 currentGraphics
 		// 不渲染 返回false
-		if (!this.canRender) return undefined
+		if (!this.canRender) return null
 		// if (!this.canRender || this.currentGraphics?.cache) return undefined
 		// 报错不算
 		// this.activeSelection = true // 设置true  如果走到最后没有变化  就自己变为 false了
@@ -328,7 +328,7 @@ export class Crop extends EventHub {
 				return this.currentPage.splice(index, 1)[0]
 			}
 		}
-		return undefined
+		return null
 	}
 
 	getCrashActiveLineAndRemove(
@@ -913,9 +913,8 @@ export class Crop extends EventHub {
 			case eventType.DOWN: {
 				const graphics = this.getSelectGraphics(point)
 
+				const isClickSelf = graphics === this.currentGraphics
 				if (graphics) {
-					const isClickSelf = graphics === this.currentGraphics
-
 					if (
 						type === eventType.DBLCLICK &&
 						graphics.name === '文字' &&
@@ -947,11 +946,14 @@ export class Crop extends EventHub {
 						type === eventType.DBLCLICK ? 21 : this.state.penStatus
 					this.currentGraphics = this.initGraphics(this.graphicsMap[penStatus])
 				}
-				this.emit('run', {
-					data: graphics?.getData(),
-					name: 'activeChange',
-					time: point.t,
-				})
+				if (!isClickSelf) {
+					// 没有变化
+					this.emit('run', {
+						data: graphics?.getData(),
+						name: 'activeChange',
+						time: point.t,
+					})
+				}
 				// 不返回了 动态计算当前的偏移量
 				// 绘图 当前的
 				// console.log('刚点中的是：graphics, 即将绘制', this.currentGraphics)
@@ -1351,6 +1353,7 @@ export class Crop extends EventHub {
 			if (item.data.id === id) {
 				if (out) {
 					this.currentPage.splice(index, 1)
+					this.render()
 				}
 				return item
 			}
