@@ -13,6 +13,7 @@ import {
 	RubberShape,
 	RectShape,
 	TextTowShape,
+	EllipseShape,
 } from './../../../packages/src/index'
 import JSONData from './../../data/framework.json'
 import { Header, Loading, Message } from './../../components/index'
@@ -51,7 +52,16 @@ function App() {
 			height: 163.26942231075697,
 			x: 300.5625,
 			y: 115.77851095617531,
-			color: 'red',
+			strokeStyle: 'red',
+		})
+
+		const ellipseNode = new EllipseShape({
+			width: 100,
+			height: 200,
+			x: 0,
+			y: 0,
+			strokeStyle: 'red',
+			fillStyle: 'yellow',
 		})
 
 		const imgNode = new ImageShape({
@@ -67,9 +77,9 @@ function App() {
 			x: 400.5625,
 			lineHeight: 60,
 			y: 115.77851095617531,
-			color: 'red',
+			fillStyle: 'red',
 		})
-		container.add(imgNode).add(rectNode).add(textNode)
+		container.add(imgNode).add(rectNode).add(textNode).add(ellipseNode)
 	}
 
 	useEffect(() => {

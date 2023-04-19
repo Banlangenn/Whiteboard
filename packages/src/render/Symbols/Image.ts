@@ -23,8 +23,8 @@ import {
 } from './Shape'
 import RectShape, { RectShapeProperties } from './Rect'
 export interface ImageShapeProperties extends properties {
-	radius: number | DOMPointInit | Iterable<number | DOMPointInit>;
-	imageOrUri: string | HTMLImageElement | HTMLCanvasElement;
+	radius: number | DOMPointInit | Iterable<number | DOMPointInit>
+	imageOrUri: string | HTMLImageElement | HTMLCanvasElement
 }
 
 export default class ImageShape extends BaseShape<ImageShapeProperties> {
@@ -36,11 +36,11 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	private image!: HTMLImageElement | HTMLCanvasElement
 	constructor(
-		userOptions: PartialPickRequired<ImageShapeProperties, 'imageOrUri'>
+		userOptions: PartialPickRequired<ImageShapeProperties, 'imageOrUri'>,
 	) {
 		const data = createShapeProperties<ImageShapeProperties>(
 			userOptions,
-			ImageShape
+			ImageShape,
 		)
 		super(data)
 		// 入参是可选的
@@ -75,8 +75,8 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 					fill: false,
 					radius: 0,
 				},
-				RectShape
-			)
+				RectShape,
+			),
 		)
 		this.getSourceRect()
 		this.pointerDownState = this.initPointerDownState()
@@ -124,12 +124,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 
 	getSourceRect() {
 		const { width, height, x, y } = this.data
-		this.limitValue = getRectLimitValue(
-			{ x, y },
-			width,
-			height,
-			this.threshold
-		)
+		this.limitValue = getRectLimitValue({ x, y }, width, height, this.threshold)
 		const rect = getLimit2Rect(this.limitValue)
 		this.rectBounding?.setData(rect).getSourceRect()
 	}
@@ -145,7 +140,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 				// s: true,
 				// w: true,
 				// e: true,
-			}
+			},
 		)
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
@@ -154,9 +149,9 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		// 取走一个点 能够拿到x，y
 		// 所谓缓存都是用 canvas  再画一个放在 一个
 
-		// if (!this.image) {
-		// 	await this.initImageData()
-		// }
+		if (!this.image) {
+			await this.initImageData()
+		}
 
 		const { x, y, width, height, radius } = this.data
 
@@ -203,7 +198,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 					true,
 					this.maybeTransformHandleType,
 					false,
-					_p
+					_p,
 				)
 			} else {
 				dragElements(this.pointerDownState, this, p)
@@ -216,7 +211,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	endPendingPoint(
 		ctx: CanvasRenderingContext2D,
 		p: newPoint,
-		events: EventHub
+		events: EventHub,
 	) {
 		if (this.isEdit) return
 		// events.emit('appendCurrentPage', this)
@@ -234,10 +229,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	}
 	computeClick(p: point, events: InstanceType<typeof EventHub>): boolean {
 		if (this.isEdit) {
-			const maybeTransformHandleType = this.resizeTest(
-				p,
-				this.transformHandles
-			)
+			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
 				this.pointerDownState = {
