@@ -72,10 +72,9 @@ export default class TextShape extends BaseShape<TextProperties> {
 		}
 
 		const data = createShapeProperties<TextProperties>(
-				{...defaultOptions, ...userOptions},
+			{ ...defaultOptions, ...userOptions },
 			TextShape,
 		)
-
 
 		super(data)
 
@@ -149,7 +148,6 @@ export default class TextShape extends BaseShape<TextProperties> {
 			(element) => {
 				// 不能依靠这个提交
 				//  依靠就会出问题
-
 				this.data = { ...this.data, ...element }
 				this.endPendingPoint(ctx, point, events)
 			},
@@ -474,7 +472,6 @@ const renderText = (
 	context.save()
 	context.font = getFontString(element)
 
-	
 	/* CanvasTextAlign */
 	context.textAlign = element.textAlign as CanvasTextAlign
 
@@ -532,7 +529,6 @@ const renderText = (
 			(index + 1) * element.lineHeight + element.y - baseline,
 		)
 	}
-
 
 	context.restore()
 }

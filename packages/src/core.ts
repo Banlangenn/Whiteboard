@@ -942,6 +942,7 @@ export class Crop extends EventHub {
 						this.drawCurrentGroup()
 					}
 				} else {
+					this.events.emit('clearCapturingCanvas')
 					const penStatus =
 						type === eventType.DBLCLICK ? 21 : this.state.penStatus
 					this.currentGraphics = this.initGraphics(this.graphicsMap[penStatus])
