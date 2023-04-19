@@ -33,7 +33,7 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 			lineWidth: 0,
 		}
 		const data = createShapeProperties<GroupProperties>(
-			Object.assign(defaultOptions, userOptions),
+			{...defaultOptions, ...userOptions},
 			GroupShape,
 		)
 		super(data)
@@ -45,7 +45,8 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 				{
 					...defaultOptions,
 					isAuxiliary: true,
-					color: '#f60',
+					strokeStyle: '#f60',
+	
 					lineWidth: 1,
 					radius: 8,
 					isDash: true,

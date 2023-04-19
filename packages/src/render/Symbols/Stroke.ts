@@ -56,7 +56,7 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 			},
 		}
 		const data = createShapeProperties<StrokeShapeProperties>(
-			Object.assign(defaultOptions, userOptions),
+			{...defaultOptions, ...userOptions},
 			StrokeShape,
 		)
 		super(data)
@@ -69,7 +69,7 @@ export default class StrokeShape extends BaseShape<StrokeShapeProperties> {
 					isAuxiliary: true,
 					x: 0,
 					y: 0,
-					color: '#6965db',
+					strokeStyle: '#6965db',
 					lineWidth: 1,
 					fill: false,
 					radius: 0,

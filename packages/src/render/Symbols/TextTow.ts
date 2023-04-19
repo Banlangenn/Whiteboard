@@ -31,7 +31,6 @@ export interface TextProperties extends properties {
 	width: number
 	height: number
 	opacity: number
-	strokeColor: string // color
 	textAlign: string
 	isAuxiliary: boolean
 }
@@ -52,7 +51,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 			fontSize: 24,
 			width: 0,
 			height: 0,
-			color: '#f60',
+			fillStyle: '#f60',
 			opacity: 100,
 			textAlign: 'left',
 			isAuxiliary: false,
@@ -73,11 +72,10 @@ export default class TextShape extends BaseShape<TextProperties> {
 		}
 
 		const data = createShapeProperties<TextProperties>(
-			Object.assign(defaultOptions, userOptions, {
-				strokeColor: userOptions.color,
-			}),
+				{...defaultOptions, ...userOptions},
 			TextShape,
 		)
+
 
 		super(data)
 
@@ -92,10 +90,11 @@ export default class TextShape extends BaseShape<TextProperties> {
 						x: 0,
 						y: 0,
 						isAuxiliary: true,
-						color: '#6965db',
+						strokeStyle: '#6965db',
 						lineWidth: 1,
 						fill: false,
 						radius: 0,
+						fillStyle: undefined,
 					},
 					RectShape,
 				),
@@ -107,6 +106,8 @@ export default class TextShape extends BaseShape<TextProperties> {
 
 	draw(context: CanvasRenderingContext2D, ignoreCache = false) {
 		const element = this.data
+		this.drawAttributeInit(context)
+
 		renderText(element, context)
 
 		this.getSourceRect()
@@ -354,7 +355,7 @@ const newTextElement = (
 			left: `${left}px`,
 			top: `${top}px`,
 			textAlign: updatedElement.textAlign,
-			color: updatedElement.strokeColor,
+			color: updatedElement.fillStyle,
 			opacity: updatedElement.opacity / 100,
 			filter: 'none',
 		})
@@ -473,7 +474,7 @@ const renderText = (
 	context.save()
 	context.font = getFontString(element)
 
-	context.fillStyle = element.strokeColor || element.color
+	
 	/* CanvasTextAlign */
 	context.textAlign = element.textAlign as CanvasTextAlign
 
@@ -531,6 +532,7 @@ const renderText = (
 			(index + 1) * element.lineHeight + element.y - baseline,
 		)
 	}
+
 
 	context.restore()
 }

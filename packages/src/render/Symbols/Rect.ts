@@ -23,9 +23,8 @@ import {
 	PartialPickRequired,
 } from './Shape'
 export interface RectShapeProperties extends properties {
-	color?: string
-	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>
-	isAuxiliary?: boolean
+	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>;
+	isAuxiliary?: boolean;
 }
 
 // 传进来 state
@@ -52,8 +51,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			radius: 0, // 圆角
 		}
 		const data = createShapeProperties<RectShapeProperties>(
-			Object.assign(defaultOptions, userOptions),
-			RectShape,
+			{ ...defaultOptions, ...userOptions},
+			RectShape
 		)
 		super(data)
 
@@ -67,13 +66,12 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 						x: 0,
 						y: 0,
 						isAuxiliary: true,
-						color: '#6965db',
+						strokeStyle: '#6965db',
 						lineWidth: 1,
 						radius: 0,
-						fill: false,
 					},
-					RectShape,
-				),
+					RectShape
+				)
 			)
 		}
 		this.getSourceRect()
@@ -82,36 +80,36 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		this.vertex = this.getVertex()
 	}
 
-	roundRect(context: CanvasRenderingContext2D, ignoreCache = false) {
-		const { x, y, width, height, radius } = this.data
-		const { minY, minX, maxX, maxY } = this.limitValue
-		const cx = (minX + maxX) / 2
-		const cy = (minY + maxY) / 2
-		context.beginPath()
-		context.roundRect(x - cx, y - cy, width, height, radius)
-		if (this.data.fill) {
-			context.fill()
-		}
-		context.stroke()
-	}
 	draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
-		const angle = this.data.angle!
+		const { x, y, width, height, radius, angle, fillStyle, strokeStyle } =
+			this.data
 		const { minY, minX, maxX, maxY } = this.limitValue
 		const cx = (minX + maxX) / 2
 		const cy = (minY + maxY) / 2
+		const _x = x - cx
+		const _y = y - cy
 		ctx.translate(cx, cy)
 
 		ctx.rotate(angle)
-		if (this.data.radius !== 0) {
-			this.roundRect(ctx)
-		} else {
-			ctx.beginPath()
-			const { x, y, width, height } = this.data
+		ctx.beginPath()
+		// 矩形
+		ctx.roundRect(_x, _y, width, height, radius)
 
-			ctx.rect(x - cx, y - cy, width, height)
-			if (this.data.fill) {
-				ctx.fill()
-			}
+		// 椭圆
+		// ctx.ellipse(
+		// 	_x + width / 2,
+		// 	_y + height / 2,
+		// 	width / 2,
+		// 	height / 2,
+		// 	0,
+		// 	0,
+		// 	2 * Math.PI
+		// );
+
+		if (fillStyle) {
+			ctx.fill()
+		}
+		if (strokeStyle) {
 			ctx.stroke()
 		}
 
@@ -124,21 +122,20 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	initPending(
 		ctx: CanvasRenderingContext2D,
 		point: newPoint,
-		events: EventHub,
+		events: EventHub
 	) {
 		this.drawAttributeInit(ctx)
 		this.pointerDownState = this.initPointerDownState(point)
 		if (this.isEdit) {
 			// 记录 当前点
-			events.emit('clearCapturingCanvas')
+			// events.emit('clearCapturingCanvas');
 			this.draw(ctx)
-			return
 		}
 	}
 	appendPoint(
 		ctx: CanvasRenderingContext2D,
 		point: newPoint,
-		events: EventHub,
+		events: EventHub
 	) {
 		// 如果离得很近 判断
 		if (this.isEdit) {
@@ -153,7 +150,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 					false,
 					this.maybeTransformHandleType,
 					false,
-					p,
+					p
 				)
 			} else {
 				// this.computeOffsetPath(deviationX, deviationYW)
@@ -183,7 +180,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			{ x, y },
 			width,
 			height,
-			lineWidth / 2 + this.threshold,
+			lineWidth / 2 + this.threshold
 		)
 
 		if (!this.data.isAuxiliary) {
@@ -192,7 +189,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 				{ x, y },
 				width,
 				height,
-				this.threshold,
+				this.threshold
 			)
 			const rect = getLimit2Rect(this.limitValue)
 			this.rectBounding.setData(rect).getSourceRect()
@@ -221,7 +218,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	endPendingPoint(
 		ctx: CanvasRenderingContext2D,
 		p: newPoint,
-		events: EventHub,
+		events: EventHub
 	) {
 		if (!this.available) {
 			console.log('无效的图形')
@@ -255,7 +252,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 				// s: true,
 				// w: true,
 				// e: true,
-			},
+			}
 		)
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
@@ -275,7 +272,10 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		// 点和矩形碰撞
 		// return this.polygonCheckCrash(p, this.vertex, 10)
 		if (this.isEdit) {
-			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
+			const maybeTransformHandleType = this.resizeTest(
+				p,
+				this.transformHandles
+			)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
 				this.pointerDownState = {

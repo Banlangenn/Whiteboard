@@ -1285,6 +1285,7 @@ export class Crop extends EventHub {
 
 	public capturingDrawCurrentStroke() {
 		if (!this.canRender) return
+
 		this.renderer.clearCapturingCanvas(this.context)
 		if (this.currentGraphics) {
 			this.currentGraphics?.getSourceRect()

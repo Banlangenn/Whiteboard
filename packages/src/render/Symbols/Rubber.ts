@@ -18,7 +18,7 @@ export default class RubberShape extends BaseShape<RubberShapeProperties> {
 			available: false,
 		}
 		const data = createShapeProperties(
-			Object.assign(defaultOptions, userOptions),
+			{...defaultOptions, ...userOptions},
 			RubberShape,
 		)
 		super(data)

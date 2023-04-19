@@ -99,9 +99,8 @@ export interface properties {
 	y: number
 	width: number
 	height: number
-	fill?: boolean
-	fillColor?: string
-	color?: string
+	strokeStyle?: string
+	fillStyle?: string
 	isDash?: boolean
 	opacity?: number
 	angle?: number
@@ -144,7 +143,6 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 			this.appendPointCallTimes = 0
 		})
 
-		// TODO: 这写个黑魔法放在 core写 更好
 		this.endPendingPoint = fnAfter(
 			this,
 			this.endPendingPoint,
@@ -177,13 +175,13 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 	//     return BaseShape.cache
 	// }
 	drawAttributeInit(context: CanvasRenderingContext2D) {
-		const { color, lineWidth, isDash, fillColor, opacity = 1 } = this.data
-		if (color && context.strokeStyle !== color) {
-			context.strokeStyle = color
+		const { lineWidth, isDash, opacity = 1, strokeStyle, fillStyle } = this.data
+		if (context.strokeStyle !== strokeStyle && strokeStyle) {
+			context.strokeStyle = strokeStyle
 		}
-		const FC = fillColor || color
-		if (FC && context.fillStyle !== FC) {
-			context.fillStyle = FC
+		
+		if (context.fillStyle !== fillStyle && fillStyle) {
+			context.fillStyle = fillStyle
 		}
 		if (lineWidth && context.lineWidth !== lineWidth) {
 			context.lineWidth = lineWidth
@@ -240,6 +238,7 @@ export abstract class BaseShape<T extends Partial<properties> = properties> {
 		return this
 	}
 	getData(): Required<T> {
+		
 		return this.data
 	}
 
@@ -999,7 +998,6 @@ export const createShapeProperties = <T extends properties>(
 		version: element.version ?? 1,
 		versionNonce: element.versionNonce ?? randomInteger(),
 		id: element.id || nanoid(),
-		fill: element.fill ?? false,
 		lineWidth: element.lineWidth || 1,
 		opacity: element.opacity ?? 100,
 		angle: element.angle || 0,
