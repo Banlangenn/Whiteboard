@@ -162,6 +162,7 @@ export default class EllipseShape extends BaseShape<EllipseShapeProperties> {
 		if (this.available) {
 			events.emit('clearCapturingCanvas')
 			this.getSourceRect()
+
 			this.draw(ctx)
 		}
 	}

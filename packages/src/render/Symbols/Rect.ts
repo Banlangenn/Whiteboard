@@ -23,8 +23,8 @@ import {
 	PartialPickRequired,
 } from './Shape'
 export interface RectShapeProperties extends properties {
-	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>;
-	isAuxiliary?: boolean;
+	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>
+	isAuxiliary?: boolean
 }
 
 // 传进来 state
@@ -51,8 +51,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			radius: 0, // 圆角
 		}
 		const data = createShapeProperties<RectShapeProperties>(
-			{ ...defaultOptions, ...userOptions},
-			RectShape
+			{ ...defaultOptions, ...userOptions },
+			RectShape,
 		)
 		super(data)
 
@@ -70,8 +70,8 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 						lineWidth: 1,
 						radius: 0,
 					},
-					RectShape
-				)
+					RectShape,
+				),
 			)
 		}
 		this.getSourceRect()
@@ -95,17 +95,6 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		// 矩形
 		ctx.roundRect(_x, _y, width, height, radius)
 
-		// 椭圆
-		// ctx.ellipse(
-		// 	_x + width / 2,
-		// 	_y + height / 2,
-		// 	width / 2,
-		// 	height / 2,
-		// 	0,
-		// 	0,
-		// 	2 * Math.PI
-		// );
-
 		if (fillStyle) {
 			ctx.fill()
 		}
@@ -122,7 +111,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	initPending(
 		ctx: CanvasRenderingContext2D,
 		point: newPoint,
-		events: EventHub
+		events: EventHub,
 	) {
 		this.drawAttributeInit(ctx)
 		this.pointerDownState = this.initPointerDownState(point)
@@ -135,7 +124,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	appendPoint(
 		ctx: CanvasRenderingContext2D,
 		point: newPoint,
-		events: EventHub
+		events: EventHub,
 	) {
 		// 如果离得很近 判断
 		if (this.isEdit) {
@@ -150,7 +139,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 					false,
 					this.maybeTransformHandleType,
 					false,
-					p
+					p,
 				)
 			} else {
 				// this.computeOffsetPath(deviationX, deviationYW)
@@ -180,7 +169,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			{ x, y },
 			width,
 			height,
-			lineWidth / 2 + this.threshold
+			lineWidth / 2 + this.threshold,
 		)
 
 		if (!this.data.isAuxiliary) {
@@ -189,7 +178,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 				{ x, y },
 				width,
 				height,
-				this.threshold
+				this.threshold,
 			)
 			const rect = getLimit2Rect(this.limitValue)
 			this.rectBounding.setData(rect).getSourceRect()
@@ -218,7 +207,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 	endPendingPoint(
 		ctx: CanvasRenderingContext2D,
 		p: newPoint,
-		events: EventHub
+		events: EventHub,
 	) {
 		if (!this.available) {
 			console.log('无效的图形')
@@ -252,7 +241,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 				// s: true,
 				// w: true,
 				// e: true,
-			}
+			},
 		)
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
@@ -272,10 +261,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		// 点和矩形碰撞
 		// return this.polygonCheckCrash(p, this.vertex, 10)
 		if (this.isEdit) {
-			const maybeTransformHandleType = this.resizeTest(
-				p,
-				this.transformHandles
-			)
+			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
 				this.pointerDownState = {

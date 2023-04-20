@@ -1482,7 +1482,7 @@ export class Crop extends EventHub {
 			graphics,
 			{
 				lineWidth: this.state.penWidth,
-				color: this.penColor, //  用get 计算属性  会自动给出 哪个颜色
+				strokeStyle: this.penColor, //  用get 计算属性  会自动给出 哪个颜色
 				offset: this.state.penWidth,
 				// activeGroupName: this.activeGroupName,
 				...properties,

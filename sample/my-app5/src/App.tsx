@@ -24,7 +24,7 @@ function App() {
 			el: '.App',
 			penColor: '#f80',
 			penWidth: 2,
-			status: 211,
+			status: 12,
 			canDraw: true,
 			canRender: true,
 			nativeEventStop: false,
@@ -37,6 +37,7 @@ function App() {
 				TextShape,
 				StrokeShape,
 				TextTowShape,
+				EllipseShape,
 			],
 		})
 
