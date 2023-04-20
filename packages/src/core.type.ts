@@ -1,17 +1,16 @@
 import { newPoint, limitValue } from './utils'
 import { Graphics } from './render/Symbols/Shape'
-
-export interface ComFunc<T = any> {
+import { Crop } from './core'
+export type ComFunc = new () => {
 	createEl: (el: HTMLElement, outerLayer: HTMLElement) => void
-	ready: (crop: T) => void
+	ready: (crop: Crop) => void
 	destroy: () => void
-	new (): ComFunc<T>
 }
 
 export interface CropComponent {
 	name: string
 	type: ComFunc
-	params?: any[]
+	params?: any
 }
 
 export enum eventType {

@@ -1,4 +1,7 @@
-import Crop, { localTouchEvent, areaParams } from '../index'
+/* eslint-disable */
+// import Crop, { localTouchEvent, areaParams } from '../index'
+//
+import { Crop } from '../core'
 import { editDataI } from '../render/SymbolCanvasRendener'
 import { logger } from '../utils'
 
@@ -20,12 +23,12 @@ export interface playerI {
 
 export interface changeStatusI {
 	name: string
-	value: string | number | areaParams
+	value: string | number // | areaParams
 }
 
 export interface originDataI {
 	t: number
-	v: editDataI | changeStatusI | localTouchEvent
+	v: editDataI | changeStatusI // | localTouchEvent
 }
 
 // 播放
@@ -80,7 +83,7 @@ export default function createPlayer(originData: originDataI[] = []): playerI {
 				while (currentTime >= time) {
 					// 最后一笔不画 就好了
 					this.replayIndex += 1
-					cropRef.dispatchLocalEvent(data)
+					// cropRef.dispatchLocalEvent(data)
 					data = this.originData[this.replayIndex]
 
 					if (!data || !data.t) {
@@ -165,7 +168,7 @@ function getIndexAndDraw(
 	let replayIndex = 0
 	for (let index = i; index < len; index++) {
 		const el = originData[index]
-		cropRef.dispatchLocalEvent(el)
+		// cropRef.dispatchLocalEvent(el)
 		// const time = el.t - originData[0].t
 		if (el.t >= timestamp) {
 			replayIndex = index

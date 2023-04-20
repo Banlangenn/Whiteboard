@@ -6,10 +6,15 @@ import {
 	EventHub,
 } from '../../utils'
 // import Edit from './../../index'
-import { properties, BaseShape, Graphics, createShapeProperties } from './Shape'
+import {
+	properties,
+	BaseShape,
+	GraphicsIns,
+	createShapeProperties,
+} from './Shape'
 import RectShape, { RectShapeProperties } from './Rect'
 export interface GroupProperties extends properties {
-	g: Graphics[]
+	g: GraphicsIns[]
 }
 
 export default class GroupShape extends BaseShape<GroupProperties> {
@@ -18,8 +23,7 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 	name = '组'
 	movePoint!: point
 	rectBounding!: InstanceType<typeof RectShape>
-	constructor(g: Graphics[] = []) {
-		super()
+	constructor(userOptions: GroupProperties) {
 		const defaultOptions = {
 			key: 10,
 			width: 0,
@@ -28,27 +32,36 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 			y: 0,
 			lineWidth: 0,
 		}
-		this.data = createShapeProperties<GroupProperties>(
-			Object.assign(defaultOptions, { g }),
+		const data = createShapeProperties<GroupProperties>(
+			{...defaultOptions, ...userOptions},
+			GroupShape,
 		)
+		super(data)
+
+		this.data = data
+
 		this.rectBounding = new RectShape(
-			createShapeProperties<RectShapeProperties>({
-				...defaultOptions,
-				isAuxiliary: true,
-				color: '#f60',
-				lineWidth: 1,
-				radius: 8,
-				isDash: true,
-			}),
+			createShapeProperties<RectShapeProperties>(
+				{
+					...defaultOptions,
+					isAuxiliary: true,
+					strokeStyle: '#f60',
+	
+					lineWidth: 1,
+					radius: 8,
+					isDash: true,
+					fill: false,
+				},
+				RectShape,
+			),
 		)
 	}
 
 	getContent() {
 		const g = this.data.g.splice(0, this.data.g.length)
-		console.log('length', g.length, 'datalength', this.data.g.length)
 		return g
 	}
-	setContent(g: Graphics[]) {
+	setContent(g: GraphicsIns[]) {
 		this.data.g.push(...g)
 		// console.log('setContent修改isEdit为true')
 		this.getSourceRect()
@@ -61,7 +74,7 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 
 		for (const item of this.data.g) {
 			item.drawAttributeInit(ctx)
-			item.data.path2d = undefined
+			item.data.path2d = null
 			item.draw(ctx, ignoreCache)
 		}
 		// hack 文字
@@ -124,7 +137,8 @@ export default class GroupShape extends BaseShape<GroupProperties> {
 
 	clone() {
 		// 可能会出现 还是原来那块地址
-		const o = new GroupShape(this.data.g.map((e) => e.clone() as Graphics))
+
+		const o = new GroupShape({ ...this.data, g: [...this.data.g] })
 		return o
 	}
 
@@ -188,8 +202,7 @@ export class InnerGroupShape extends GroupShape {
 	static key = 100
 	static cache = true
 	name = '内部组'
-	constructor(p: properties) {
-		super()
+	constructor(p: GroupProperties) {
 		const defaultOptions = {
 			width: 0,
 			height: 0,
@@ -197,7 +210,13 @@ export class InnerGroupShape extends GroupShape {
 			y: 0,
 			g: [],
 		}
-		this.data = Object.assign(defaultOptions, p)
+		const data = createShapeProperties<GroupProperties>(
+			Object.assign(defaultOptions, p),
+			InnerGroupShape,
+		)
+		super(data)
+
+		this.data = data
 	}
 	initPending(
 		ctx: CanvasRenderingContext2D,

@@ -24,7 +24,7 @@ import {
 	CropComponent,
 	localTouchEvent,
 } from './core.type'
-import { properties, Graphics } from './render/Symbols/Shape'
+import { properties, Graphics, GraphicsIns } from './render/Symbols/Shape'
 
 function createFunc<T>(c: new (...arg: any[]) => T, ...rest: any[]): T {
 	return new c(...rest)
@@ -34,13 +34,13 @@ function createFunc<T>(c: new (...arg: any[]) => T, ...rest: any[]): T {
 function createGraphicsBase<T extends Graphics>(): (
 	shape: T,
 	...res: any[]
-) => T {
-	const shapeCache: { [key: string]: any } = {}
+) => InstanceType<T> {
+	const shapeCache: Record<string, any> = {}
 	return (shape, ...res) => {
 		// console.log('createGraphicsBaseres缓存params：', res)
-		const ShapeIns = Object.getPrototypeOf(shape).constructor
-		if (ShapeIns.cache) {
-			const key = ShapeIns.key
+		// 实例缓存
+		if (shape.cache) {
+			const key = shape.key
 			const currentShape = shapeCache[key]
 			if (currentShape) {
 				// 缓存  橡皮和组 实例
@@ -48,15 +48,18 @@ function createGraphicsBase<T extends Graphics>(): (
 				// console.log(currentShape, 'createGraphicsBase')
 				return currentShape
 			} else {
-				shapeCache[key] = createFunc(shape, ...res)
+				// TODO: 类型错误
+				shapeCache[key] = createFunc(shape as any, ...res)
 				return shapeCache[key]
 			}
 		}
-		return createFunc(shape, ...res)
+
+		// TODO: 类型错误
+		return createFunc(shape as any, ...res)
 	}
 }
 // 这个函数可以传值的  是个闭包缓存
-const createGraphics = createGraphicsBase<Graphics>()
+export const createGraphics = createGraphicsBase<Graphics>()
 // (c: new (...arg: any[]) => Graphics, p: properties, e: EventHub) => Graphics
 
 const eventArray: string[] = [
@@ -104,14 +107,15 @@ export class Crop extends EventHub {
 	// private _player: playerI
 	private _container: HTMLElement
 	private graphicsMap!: { [key: number]: Graphics }
-	private currentGraphics!: Graphics
+	private currentGraphics!: GraphicsIns
 	private events: EventHub = new EventHub()
-	private currentPage: Graphics[] = []
-	private _installedCom: { [key: string]: ComFunc<Crop> } = {}
+	private currentPage: GraphicsIns[] = []
+	private _installedCom: { [key: string]: InstanceType<ComFunc> } = {}
 	private history: InstanceType<typeof History>
 	constructor(option: Required<CropProps>, ready?: (...arg: any[]) => void) {
 		super([
-			'data',
+			'run', // 不同操作
+			'data', // 同步笔记
 			'ready',
 			'penColor',
 			'focus',
@@ -173,7 +177,7 @@ export class Crop extends EventHub {
 		this.emit('ready', this)
 	}
 
-	public getElement(id: string): Graphics | null {
+	public getElement(id: string): GraphicsIns | null {
 		// 维护map  海曙数组
 		for (const el of this.currentPage) {
 			if (el.getData().id === id) {
@@ -237,7 +241,7 @@ export class Crop extends EventHub {
 			y,
 		}
 	}
-	drawCurrentGroup(strokes?: Graphics[] | Graphics) {
+	drawCurrentGroup(strokes?: GraphicsIns[] | GraphicsIns) {
 		if (!this.canRender) return
 		const { x = 0, y = 0 } = this._translatePosition || {}
 		if (strokes) {
@@ -245,9 +249,9 @@ export class Crop extends EventHub {
 			// 清除上层 canvas
 			// 在上层画 之后 要转移到下层 -- 如果都在会变粗
 			// 有些情况是不需要的
+
 			this.renderer.clearCapturingCanvas(this.context, x, y)
-			//  为什么加这个 + 文字失去焦点会出现
-			// this.drawGraphics(this.context.capturingCanvasContext, [this.currentGraphics])
+
 			return
 		} else {
 			if (this._translatePosition) {
@@ -275,23 +279,28 @@ export class Crop extends EventHub {
 			}
 		}
 	}
-	drawGraphics(ctx: CanvasRenderingContext2D, strokes?: Graphics | Graphics[]) {
+	async drawGraphics(
+		ctx: CanvasRenderingContext2D,
+		strokes?: GraphicsIns | GraphicsIns[],
+	) {
+		if (!this.canRender) return
 		// console.log(`${strokes ? '增量更新' + strokes.length : ('全量更新')}----`)
 		const strokesRef = strokes || this.currentPage
+
 		if (Array.isArray(strokesRef)) {
 			for (const item of strokesRef) {
 				item.drawAttributeInit(ctx)
-				item.draw(ctx, true)
+				await item.draw(ctx, true)
 			}
 		} else {
 			strokesRef.drawAttributeInit(ctx)
-			strokesRef.draw(ctx, true)
+			await strokesRef.draw(ctx, true)
 		}
 	}
-	getSelectGraphics(point: point): Graphics | undefined | null {
+	getSelectGraphics(point: point): GraphicsIns | null {
 		// 初始化 上来的 没有 currentGraphics
 		// 不渲染 返回false
-		if (!this.canRender) return undefined
+		if (!this.canRender) return null
 		// if (!this.canRender || this.currentGraphics?.cache) return undefined
 		// 报错不算
 		// this.activeSelection = true // 设置true  如果走到最后没有变化  就自己变为 false了
@@ -319,18 +328,18 @@ export class Crop extends EventHub {
 				return this.currentPage.splice(index, 1)[0]
 			}
 		}
-		return undefined
+		return null
 	}
 
 	getCrashActiveLineAndRemove(
-		currentPage: Graphics[],
+		currentPage: GraphicsIns[],
 		ePoint: point,
 		radius: number,
 		once = false,
-	): Graphics[] {
+	): GraphicsIns[] {
 		// 多次检查 - 延迟删除一次
 		// const linePath = this.linePath
-		let crashActiveLine: Graphics[] = []
+		let crashActiveLine: GraphicsIns[] = []
 
 		// 如果 全部检查完-- 正向 和 负向 没什么区别--
 		for (let index = currentPage.length - 1; index >= 0; index--) {
@@ -369,11 +378,11 @@ export class Crop extends EventHub {
 	}
 	// 获取 选中的笔记 平移和删除需要remove  复制不需要删除
 	getRectCrashLine(
-		currentPage: Graphics[],
+		currentPage: GraphicsIns[],
 		limitValue: limitValue,
 		isRemove = true,
 	) {
-		let crashActiveLine: Graphics[] = []
+		let crashActiveLine = []
 
 		for (let index = currentPage.length - 1; index >= 0; index--) {
 			const element = currentPage[index]
@@ -415,16 +424,25 @@ export class Crop extends EventHub {
 			this.renderer.clearRenderingCanvas(this.context, x, y)
 		})
 		// 插入当前的 page
-		this.events.on('appendCurrentPage', (graphics) => {
-			const g = graphics as Graphics | Graphics[]
-			if (Array.isArray(g)) {
-				this.currentPage.push(...g)
-			} else {
-				// console.log('g.appendPointCallTimes', g.appendPointCallTimes)
-				this.currentPage.push(g)
-			}
-			this.drawCurrentGroup(g)
-		})
+		this.events.on(
+			'appendCurrentPage',
+			(graphics: GraphicsIns | GraphicsIns[]) => {
+				const g = graphics
+				if (Array.isArray(g)) {
+					this.currentPage.push(...g)
+				} else {
+					// console.log('g.appendPointCallTimes', g.appendPointCallTimes)
+					this.currentPage.push(g)
+				}
+				this.drawCurrentGroup(g)
+				//  为什么加这个 + 文字失去焦点会出现 - 点击别的图形
+				if (this.currentGraphics) {
+					this.drawGraphics(this.context.capturingCanvasContext, [
+						this.currentGraphics,
+					])
+				}
+			},
+		)
 		this.events.on('crashRemove', (point, radius) => {
 			const p = point as point
 			const r = radius as number
@@ -433,9 +451,14 @@ export class Crop extends EventHub {
 			// 组内的 怎么碰撞 --- 碰撞要特殊处理
 			const graphics = this.getCrashActiveLineAndRemove(this.currentPage, p, r)
 			if (graphics.length) {
+				// TODO: 理想的情况
+				// 取出来 影响的几个
+				// 重绘 那块区域
+				// --- 回头在看
 				this.drawCurrentGroup()
 			}
 		})
+
 		this.events.on('selectGraphics', (limit) => {
 			// console.log(limit)
 			const limitValue = limit as limitValue
@@ -448,7 +471,7 @@ export class Crop extends EventHub {
 			}
 		})
 
-		this.events.on('pushEntry', (g: Graphics) => {
+		this.events.on('pushEntry', (g: GraphicsIns) => {
 			const data = g.getData()
 
 			this.history.pushEntry(
@@ -471,7 +494,7 @@ export class Crop extends EventHub {
 		delete this._installedCom[name]
 	}
 	// 加载组件 异步
-	public async use(option: CropComponent): Promise<ComFunc<Crop>> {
+	public async use(option: CropComponent): Promise<InstanceType<ComFunc>> {
 		const instance = this.createComFunc(option)
 
 		if (instance.createEl) {
@@ -698,7 +721,7 @@ export class Crop extends EventHub {
 		if (this.canRender) {
 			this.renderer.clearCanvas(this.context)
 		}
-		this.emit('data', { v: { value: '', name: 'clear' }, t: Date.now() })
+		this.emit('data', { data: null, name: 'clear', t: Date.now() })
 	}
 	// 只带有 get不带有 set的存取器自动被推断为 readonly
 
@@ -740,16 +763,18 @@ export class Crop extends EventHub {
 		}
 		this.currentPage = graphics
 
-		setTimeout(() => {
-			this.renderer.clearCanvas(this.context)
-			if (this.currentGraphics) {
-				const context = this.context.capturingCanvasContext
-				this.drawGraphics(context, this.currentGraphics)
-			}
-			this.drawCurrentGroup()
-		}, 60)
+		// 为什么要定时器
+		// 图片加载是异步的 如果立马渲染会 图片会拿不到
+		// render 弄成异步
+		this.renderer.clearCanvas(this.context)
+		if (this.currentGraphics) {
+			const context = this.context.capturingCanvasContext
+			this.drawGraphics(context, this.currentGraphics)
+		}
 
-		this.emit('data', { v: { value: '', name: event }, t: Date.now() })
+		this.drawCurrentGroup()
+
+		this.emit('data', { data: null, name: event, t: Date.now() })
 	}
 
 	/**
@@ -876,20 +901,25 @@ export class Crop extends EventHub {
 	public handleTouchEvent(event: localTouchEvent) {
 		// 这里有问题
 		const { type, point } = event
-		this.emit('data', { v: { ...this.state, point, type }, t: point.t })
+		this.emit('data', {
+			data: { ...this.state, point },
+			name: type,
+			time: point.t,
+		})
 		const context = this.context.capturingCanvasContext
 		const events = this.events
 		switch (type) {
-			case eventType.DBLCLICK: {
-				// 判断是否点到 当前的字体上了
-				// 1. 获取当前的所有在可视区域的图形
-				// 2. 遍历 是否点中某一个
-				// 3. 取出来 转入编辑模式
-				// 4. 怎么复用以前逻辑
+			case eventType.DBLCLICK:
+			case eventType.DOWN: {
 				const graphics = this.getSelectGraphics(point)
+
+				const isClickSelf = graphics === this.currentGraphics
 				if (graphics) {
-					// 没有变化
-					if (graphics.name === '文字' && graphics === this.currentGraphics) {
+					if (
+						type === eventType.DBLCLICK &&
+						graphics.name === '文字' &&
+						isClickSelf
+					) {
 						this.events.emit('clearCapturingCanvas')
 						// 双击自己
 						graphics.setEditStatus(false)
@@ -902,40 +932,38 @@ export class Crop extends EventHub {
 						)
 						return
 					}
-					this.currentGraphics = graphics
-					// 绘制老图
-					this.drawCurrentGroup()
+
+					//  已经在编辑- 又被点中
+					if (!isClickSelf) {
+						// 没有变化
+						this.currentGraphics = graphics
+						// 绘制当前的-
+						// 把老的绘制一下
+						this.drawCurrentGroup()
+					}
 				} else {
-					const text = this.graphicsMap[9]
-					this.currentGraphics = this.initGraphics(text)
+					this.events.emit('clearCapturingCanvas')
+					const penStatus =
+						type === eventType.DBLCLICK ? 21 : this.state.penStatus
+					this.currentGraphics = this.initGraphics(this.graphicsMap[penStatus])
 				}
-				// 绘图
+				if (!isClickSelf) {
+					// 没有变化
+					this.emit('run', {
+						data: graphics?.getData(),
+						name: 'activeChange',
+						time: point.t,
+					})
+				}
+				// 不返回了 动态计算当前的偏移量
+				// 绘图 当前的
+				// console.log('刚点中的是：graphics, 即将绘制', this.currentGraphics)
 				this.currentGraphics?.initPending(
 					context,
 					point,
 					events,
 					this._translatePosition,
 				)
-				break
-			}
-			case eventType.DOWN: {
-				// console.log('this._penStatus', this._penStatus)
-				const graphics = this.getSelectGraphics(point)
-				if (graphics) {
-					// 没有变化
-					this.currentGraphics = graphics
-					// 绘制当前的-
-					// 把老的绘制一下
-					this.drawCurrentGroup()
-				} else {
-					this.currentGraphics = this.initGraphics(
-						this.graphicsMap[this.state.penStatus],
-					)
-				}
-				// 不返回了 动态计算当前的偏移量
-				// 绘图 当前的
-				// console.log('刚点中的是：graphics, 即将绘制', this.currentGraphics)
-				this.currentGraphics?.initPending(context, point, events)
 
 				// 有延迟 导致内部先move  后 init  出bug
 				// setTimeout(() => {
@@ -947,37 +975,45 @@ export class Crop extends EventHub {
 			}
 			case eventType.MOVE:
 				this.currentGraphics?.appendPoint(context, point, events)
+
 				// 如果没有出发move
 				break
 			case eventType.UP:
 				this.currentGraphics?.endPendingPoint(context, point, events)
+
 				break
 			default:
 				logger.warn(`type,没有实现  ${type}`)
 				break
 		}
+		if (this.currentGraphics) {
+			this.emit('run', {
+				time: Date.now(),
+				data: this.currentGraphics.getData(),
+				name: 'activeDataChange',
+			})
+		}
 	}
 
 	// 直接把相关图形一步划进去
-	public appendToImage(data: properties & { key: number }): void {
+	public appendToImage(data: Partial<properties> & { key: number }): void {
 		const G = this.graphicsMap[data.key]
 		const g = createGraphics(G, data, this.events)
-		g.getSourceRect(true)
-		this.currentPage.push(g)
+		g.setEditStatus(true)
+		this.add(g)
 
 		// 历史记录
 		this.history.pushEntry(
 			{
 				name: 'xxxx',
 				selectedElementIds: {
-					[data.id]: true,
+					[g.getData().id]: true,
 				},
 			},
 			this.currentPage.map((e) => e.getData()),
 		)
 		this.emit('updateModel')
 	}
-
 	// 我需要当前实例-- 只能够俄罗斯套娃--
 	// public play() {
 	//     this._player.play(this)
@@ -1091,9 +1127,15 @@ export class Crop extends EventHub {
 	// 	this.capturingDrawCurrentStroke(newCrashActiveLine)
 	// }
 
-	getCurrentPageData() {
+	/**
+	 *
+	 * @param append 要不要把编辑 的图形 丢进全局
+
+	 * @returns
+	 */
+	getCurrentPageData(append = true) {
 		const currentG = this.currentGraphics
-		if (currentG) {
+		if (append && currentG) {
 			currentG.setEditStatus(false)
 			this.events.emit('appendCurrentPage', currentG)
 			this.currentGraphics = null as any
@@ -1201,33 +1243,11 @@ export class Crop extends EventHub {
 	// 2. 增量
 	// 3. 不需要清画布
 	// 4.
-	public render(strokes?: Graphics[]) {
+	public render(strokes?: GraphicsIns[]) {
 		this.drawCurrentGroup(strokes)
 		// this.renderer.drawModel(this.context, this.model, strokes)
 	}
 
-	// 把 清屏和 画布-- 集中到一起 然后好出来 是否画画
-	/**
-	 *  绘制临时画布的 内容
-	 *
-	 * @param {editDataI} strokes
-	 * @memberof Crop
-	 */
-
-	public capturingDrawCurrentStroke(strokes: any) {
-		if (!this.canRender) return
-		// 有偏移量 走偏移量的
-		// if (this._translatePosition) {
-		// 	this.renderer.translateDrawCurrentStroke(
-		// 		this.context,
-		// 		this.model,
-		// 		this._translatePosition,
-		// 		strokes,
-		// 	)
-		// } else {
-		// 	this.renderer.drawCurrentStroke(this.context, this.model, strokes)
-		// }
-	}
 	// 创建标签
 	// PathNode 必须是一个数组  例如 刘  可能就是三笔才能填进来
 	// TODO: 要知道他 原来的的 宽高 好算现在的宽高  保持一致大小
@@ -1255,37 +1275,126 @@ export class Crop extends EventHub {
 		// 获取最大 最小值
 		//
 	}
-	public add(g: Graphics) {
-		if (g?.isEdit) {
-			g.draw(this.context.capturingCanvasContext)
+
+	// 把 清屏和 画布-- 集中到一起 然后好出来 是否画画
+	/**
+	 *  绘制临时画布的 内容
+	 *
+	 * @param {editDataI} strokes
+	 * @memberof Crop
+	 */
+
+	public capturingDrawCurrentStroke() {
+		if (!this.canRender) return
+
+		this.renderer.clearCapturingCanvas(this.context)
+		if (this.currentGraphics) {
+			this.currentGraphics?.getSourceRect()
+			this.drawGraphics(
+				this.context.capturingCanvasContext,
+				this.currentGraphics,
+			)
+		}
+		// 有偏移量 走偏移量的
+		// if (this._translatePosition) {
+		// 	this.renderer.translateDrawCurrentStroke(
+		// 		this.context,
+		// 		this.model,
+		// 		this._translatePosition,
+		// 		strokes,
+		// 	)
+		// } else {
+		// 	this.renderer.drawCurrentStroke(this.context, this.model, strokes)
+		// }
+	}
+
+	public capturingGraphicsToRender() {
+		if (!this.currentGraphics) return
+		this.currentGraphics.setEditStatus(false)
+		this.drawGraphics(this.context.renderingCanvasContext, this.currentGraphics)
+		this.renderer.clearCapturingCanvas(this.context)
+		this.currentPage.push(this.currentGraphics)
+		this.currentGraphics = null as any
+	}
+	public add(g: GraphicsIns) {
+		if (g.isEdit) {
+			this.capturingGraphicsToRender()
 			this.currentGraphics = g
+			this.capturingDrawCurrentStroke()
 		} else {
-			g.draw(this.context.renderingCanvasContext)
+			this.drawGraphics(this.context.renderingCanvasContext, g)
 			this.currentPage.push(g)
 		}
 
-		const data = g.getData()
-		this.history.pushEntry(
-			{
-				name: 'xxxx',
-				selectedElementIds: {
-					[data.id]: true,
-				},
-			},
-			this.currentPage.map((e) => e.getData()).concat(data),
-		)
+		// const data = g.getData()
+		// this.history.pushEntry(
+		// 	{
+		// 		name: 'xxxx',
+		// 		selectedElementIds: {
+		// 			[data.id]: true,
+		// 		},
+		// 	},
+		// 	this.currentPage.map((e) => e.getData()).concat(data),
+		// )
 		this.emit('updateModel')
 		return this
 	}
 
 	// 获取编辑状态的对象
-	public getActiveObject() {
+	public getActiveGraphics() {
 		if (this.currentGraphics?.isEdit) {
 			return this.currentGraphics
 		}
 		return undefined
 	}
 
+	// 根据id 获取Graphics
+	public getGraphicsById(id: string, out = false) {
+		for (let index = 0; index < this.currentPage.length; index++) {
+			const item = this.currentPage[index]
+			if (item.data.id === id) {
+				if (out) {
+					this.currentPage.splice(index, 1)
+					this.render()
+				}
+				return item
+			}
+		}
+
+		return undefined
+	}
+
+	public setCurrentGraphicsById(id: string) {
+		const graphics = this.getGraphicsById(id, true)
+		if (graphics) {
+			this.capturingGraphicsToRender()
+			graphics.setEditStatus(true)
+			this.currentGraphics = graphics
+			this.capturingDrawCurrentStroke()
+		}
+	}
+
+	public changeGraphicsById(id: string, data: properties) {
+		const graphics = this.getGraphicsById(id, true)
+		if (graphics) {
+			graphics.setData(data)
+			this.capturingGraphicsToRender()
+			graphics.setEditStatus(true)
+			this.currentGraphics = graphics
+			this.capturingDrawCurrentStroke()
+		}
+	}
+
+	public repaintGraphicsById(graphics: GraphicsIns) {
+		// TODO: 理想的情况
+		// 取出来 影响的几个
+		// 重绘 那块区域
+		// 没有变化
+		this.currentGraphics = graphics
+		// 绘制当前的-
+		// 把老的绘制一下
+		this.drawCurrentGroup()
+	}
 	/**
 	 *添加组件
 	 *
@@ -1357,7 +1466,7 @@ export class Crop extends EventHub {
 	private initGraphics<T extends Graphics>(
 		graphics: T,
 		properties = {},
-	): Graphics {
+	): GraphicsIns {
 		// 如果当前 currentGraphics 没有触发 --push  就还是缓存以前
 		// if (this.currentGraphics) {
 		//     // 什么时候 应该把橡皮给重合掉
@@ -1373,7 +1482,7 @@ export class Crop extends EventHub {
 			graphics,
 			{
 				lineWidth: this.state.penWidth,
-				color: this.penColor, //  用get 计算属性  会自动给出 哪个颜色
+				strokeStyle: this.penColor, //  用get 计算属性  会自动给出 哪个颜色
 				offset: this.state.penWidth,
 				// activeGroupName: this.activeGroupName,
 				...properties,

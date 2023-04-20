@@ -56,7 +56,6 @@ export class History {
 		return this.redoStack.length !== 0
 	}
 	// 场景是 选中显示没有偏移这种就不进 记录
-
 	shouldCreateEntry(nextEntry: HistoryEntry): boolean {
 		const { lastEntry } = this
 		if (!lastEntry) {

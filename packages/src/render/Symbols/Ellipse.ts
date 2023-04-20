@@ -2,7 +2,7 @@ import {
 	points2Rect,
 	getLimit2Rect,
 	getRectLimitValue,
-	getRectangularVertex,
+	getMidpoint,
 	rectCheckCrashPoint,
 	point,
 	newPoint,
@@ -17,29 +17,26 @@ import {
 	MaybeTransformHandleType,
 	dragElements,
 	getResizeOffsetXY,
-	rotate,
 	polygonCheckCrash,
 	createShapeProperties,
 	PartialPickRequired,
 } from './Shape'
-export interface RectShapeProperties extends properties {
-	radius?: number | DOMPointInit | Iterable<number | DOMPointInit>
-	isAuxiliary?: boolean
-}
+import RectShape, { RectShapeProperties } from './Rect'
+export type EllipseShapeProperties = properties
 
 // 传进来 state
 // 1. 屏幕信息 宽高
 // 2. 橡皮 大小 // 可以限制最大最小值
 // 3.
-export default class RectShape extends BaseShape<RectShapeProperties> {
-	static key = 11
-	name = '矩形'
+export default class EllipseShape extends BaseShape<EllipseShapeProperties> {
+	static key = 12
+	name = '椭圆'
 	vertex!: point[] // 判断是否点到线上了
 	pointerDownState!: PointerDownState
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	rectBounding!: InstanceType<typeof RectShape>
 	// PartialPickRequired<ImageShapeProperties, 'imageOrUri'>
-	constructor(userOptions: PartialPickRequired<RectShapeProperties>) {
+	constructor(userOptions: PartialPickRequired<EllipseShapeProperties>) {
 		const defaultOptions = {
 			key: 11,
 			width: 0,
@@ -50,7 +47,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			angle: 0,
 			radius: 0, // 圆角
 		}
-		const data = createShapeProperties<RectShapeProperties>(
+		const data = createShapeProperties<EllipseShapeProperties>(
 			{ ...defaultOptions, ...userOptions },
 			RectShape,
 		)
@@ -77,12 +74,10 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		this.getSourceRect()
 
 		this.pointerDownState = this.initPointerDownState()
-		this.vertex = this.getVertex()
 	}
 
 	draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
-		const { x, y, width, height, radius, angle, fillStyle, strokeStyle } =
-			this.data
+		const { x, y, width, height, angle, fillStyle, strokeStyle } = this.data
 		const { minY, minX, maxX, maxY } = this.limitValue
 		const cx = (minX + maxX) / 2
 		const cy = (minY + maxY) / 2
@@ -93,7 +88,17 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		ctx.rotate(angle)
 		ctx.beginPath()
 		// 矩形
-		ctx.roundRect(_x, _y, width, height, radius)
+
+		// 椭圆
+		ctx.ellipse(
+			_x + width / 2,
+			_y + height / 2,
+			width / 2,
+			height / 2,
+			0,
+			0,
+			2 * Math.PI,
+		)
 
 		if (fillStyle) {
 			ctx.fill()
@@ -157,6 +162,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		if (this.available) {
 			events.emit('clearCapturingCanvas')
 			this.getSourceRect()
+
 			this.draw(ctx)
 		}
 	}
@@ -185,25 +191,11 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 		}
 		if (isAppend) {
 			// 是追加的  可能作废
-			this.vertex = this.getVertex()
+
 			this.pointerDownState = this.initPointerDownState()
 		}
 	}
 
-	// 获取各个定点
-	getVertex() {
-		const { x, y, width, height, angle = 0 } = this.data
-		const limitValue = getRectLimitValue({ x, y }, width, height, 0)
-		let vertex = getRectangularVertex(limitValue)
-		if (angle !== 0) {
-			const { minX: x1, minY: y1, maxX: x2, maxY: y2 } = limitValue
-			const cx = (x1 + x2) / 2
-			const cy = (y1 + y2) / 2
-			// 旋转后的订单
-			vertex = this.vertex.map((e) => rotate(e.x, e.y, cx, cy, angle))
-		}
-		return vertex
-	}
 	endPendingPoint(
 		ctx: CanvasRenderingContext2D,
 		p: newPoint,
@@ -213,7 +205,7 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			console.log('无效的图形')
 			return
 		}
-		this.vertex = this.getVertex()
+
 		if (this.isEdit) return
 		events.emit('appendCurrentPage', this)
 		this.getSourceRect()
@@ -283,12 +275,21 @@ export default class RectShape extends BaseShape<RectShapeProperties> {
 			events.emit('appendCurrentPage', this)
 			//  需要重绘当前的图
 		} else {
-			if (this.data.fill) {
-				if (rectCheckCrashPoint(this.limitValue, p)) {
+			// 计算点到椭圆中心的距离
+			const { x, y, width, height } = this.data
+
+			const midpoint = getMidpoint({ x, y }, { x: x + width, y: y + height })
+			const left = Math.pow(p.x - midpoint.x, 2) / Math.pow(width / 2, 2)
+			const right = Math.pow(p.y - midpoint.y, 2) / Math.pow(height / 2, 2)
+
+			if (this.data.fillStyle) {
+				if (left + right <= 1) {
 					this.pointerDownState.startPoint = p
 					return true
 				}
-			} else if (polygonCheckCrash(p, this.vertex, this.threshold)) {
+			}
+
+			if (Math.abs(left + right - 1) < 0.1) {
 				this.pointerDownState.startPoint = p
 				return true
 			}

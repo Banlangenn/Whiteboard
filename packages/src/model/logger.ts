@@ -45,7 +45,7 @@ class Logger {
 					i < level ? noop : this.realMethod(methodName)
 			}
 
-			if (typeof console === undefined && level < levels.SILENT) {
+			if (console === undefined && level < levels.SILENT) {
 				return 'No console available for logging'
 			}
 		} else {
@@ -58,7 +58,7 @@ class Logger {
 		if (methodName === 'debug' || methodName === 'trace') {
 			methodName = 'log'
 		}
-		if (typeof console === undefined) {
+		if (console === undefined) {
 			return false // No method possible, for now - fixed later by enableLoggingWhenConsoleArrives
 		} else if ((console as any)[methodName] !== undefined) {
 			return (console as any)[methodName].bind(console)

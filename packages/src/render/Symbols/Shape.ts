@@ -92,36 +92,36 @@ export function fnAfter(
 export interface properties {
 	version: number
 	versionNonce: number
+	key: number
 	id: string
+	lineWidth: number
 	x: number
 	y: number
-	fill?: boolean
-	fillColor?: string
-	color?: string
+	width: number
+	height: number
+	strokeStyle?: string
+	fillStyle?: string
 	isDash?: boolean
 	opacity?: number
 	angle?: number
-	width: number
-	height: number
-	lineWidth: number
 	backgroundColor?: string
-	key: number
 	path2d?: {
 		// path2d
 		path: Path2D
 		end: boolean
-	}
+	} | null
+	[x: string]: any
 }
 
 // 外边会用到的
-export abstract class BaseShape<T extends properties> {
+export abstract class BaseShape<T extends Partial<properties> = properties> {
 	// 画当前图形
 	static key: number | string
 	static cache = false
-
+	name = ''
 	appendPointCallTimes = 0
 	disabled = false
-	data!: T
+	data: Required<T>
 	threshold = 4
 	transformHandles: TransformHandles = {}
 	limitValue: limitValue = {
@@ -132,7 +132,8 @@ export abstract class BaseShape<T extends properties> {
 	}
 	private _isEdit = false
 
-	constructor() {
+	constructor(userOptions: T) {
+		this.data = userOptions as Required<T>
 		const originAppendPoint = this.appendPoint
 		this.appendPoint = fnAfter(this, originAppendPoint, () => {
 			this.appendPointCallTimes += 1
@@ -153,7 +154,7 @@ export abstract class BaseShape<T extends properties> {
 					this.data?.text !== this.prevText
 				) {
 					this.data.versionNonce = randomInteger()
-					this.data.version += 1
+					this.data.version = (this.data.version ?? 0) + 1
 					events.emit('pushEntry', this)
 				}
 			},
@@ -174,13 +175,13 @@ export abstract class BaseShape<T extends properties> {
 	//     return BaseShape.cache
 	// }
 	drawAttributeInit(context: CanvasRenderingContext2D) {
-		const { color, lineWidth, isDash, fillColor, opacity = 1 } = this.data
-		if (color && context.strokeStyle !== color) {
-			context.strokeStyle = color
+		const { lineWidth, isDash, opacity = 1, strokeStyle, fillStyle } = this.data
+		if (context.strokeStyle !== strokeStyle && strokeStyle) {
+			context.strokeStyle = strokeStyle
 		}
-		const FC = fillColor || color
-		if (FC && context.fillStyle !== FC) {
-			context.fillStyle = FC
+		
+		if (context.fillStyle !== fillStyle && fillStyle) {
+			context.fillStyle = fillStyle
 		}
 		if (lineWidth && context.lineWidth !== lineWidth) {
 			context.lineWidth = lineWidth
@@ -219,15 +220,25 @@ export abstract class BaseShape<T extends properties> {
 	setDisabledStatus(b: boolean) {
 		this.disabled = b
 	}
-	setData(data: Partial<T>): this {
+	setData(
+		data: Omit<Partial<T>, 'key' | 'version' | 'versionNonce' | 'id'>,
+	): this {
 		// console.log('setData', data)
 		this.data = {
 			...this.data,
 			...data,
+			// 有些东西不能够改掉的
+			...{
+				key: this.data.key,
+				version: this.data.version,
+				versionNonce: this.data.versionNonce,
+				id: this.data.id,
+			},
 		}
 		return this
 	}
-	getData(): T {
+	getData(): Required<T> {
+		
 		return this.data
 	}
 
@@ -279,7 +290,7 @@ export abstract class BaseShape<T extends properties> {
 
 		const dashedLineMargin = 0 / zoom.value
 
-		const centeringOffset = (size - 8) / (2 * zoom.value)
+		const centeringOffset = (size * 2) / (2 * zoom.value)
 
 		const transformHandles: TransformHandles = {
 			// nw 左上
@@ -403,6 +414,7 @@ export abstract class BaseShape<T extends properties> {
 		transformHandles: TransformHandles,
 		angle: number,
 	): void {
+		context.fillStyle = '#fff'
 		Object.keys(transformHandles).forEach((key) => {
 			const zoomValue = 1
 			// context.
@@ -417,6 +429,11 @@ export abstract class BaseShape<T extends properties> {
 				const { x, y, width, height } = transformHandle
 				if (key === 'rotation') {
 					fillCircle(context, x + width / 2, y + height / 2, width / 2)
+				} else if (context.roundRect) {
+					context.beginPath()
+					context.roundRect(x, y, width, height, 2 / zoomValue)
+					context.fill()
+					context.stroke()
 				} else {
 					strokeRectWithRotation(
 						context,
@@ -429,6 +446,7 @@ export abstract class BaseShape<T extends properties> {
 						angle,
 						true, // fill before stroke
 					)
+					context.restore()
 				}
 				context.lineWidth = lineWidth
 			}
@@ -495,10 +513,13 @@ export abstract class BaseShape<T extends properties> {
 }
 // 只能这么搞一个通用 的类型 不然要或 所有子类
 // type
-export type Graphics = BaseShape<properties> &
-	(new (userOptions: properties, ...rest: unknown[]) => Graphics) & {
-		key: number
-	}
+export type Graphics = typeof BaseShape<Partial<properties>> & {
+	key: number
+	name: string
+}
+// new (...arg: any[]) => BaseShape<properties>
+
+export type GraphicsIns = InstanceType<typeof BaseShape<properties>>
 
 // South East  West North
 // 东南西北
@@ -593,6 +614,7 @@ const strokeRectWithRotation = (
 		context.fillRect(x - cx, y - cy, width, height)
 	}
 	context.strokeRect(x - cx, y - cy, width, height)
+
 	context.rotate(-angle)
 	context.translate(-cx, -cy)
 }
@@ -960,17 +982,22 @@ export function polygonCheckCrash(
 // 	}
 // }
 
+export type PartialPickRequired<
+	O extends Record<any, any>,
+	P extends keyof O = {},
+> = Partial<O> & Pick<O, P>
+
 export const createShapeProperties = <T extends properties>(
-	element: Partial<T> & { key: number },
-): T => {
+	element: Partial<T>,
+	Shape: { key: number },
+) => {
+	// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 	return {
-		...(element as T),
-		// color: element.color,
-		// key: element.key,
-		version: element.version || 1,
+		...element,
+		key: Shape.key,
+		version: element.version ?? 1,
 		versionNonce: element.versionNonce ?? randomInteger(),
 		id: element.id || nanoid(),
-		fill: element.fill ?? false,
 		lineWidth: element.lineWidth || 1,
 		opacity: element.opacity ?? 100,
 		angle: element.angle || 0,
@@ -979,5 +1006,5 @@ export const createShapeProperties = <T extends properties>(
 		backgroundColor: element.backgroundColor,
 		width: element.width || 0,
 		height: element.height || 0,
-	}
+	} as Required<T>
 }

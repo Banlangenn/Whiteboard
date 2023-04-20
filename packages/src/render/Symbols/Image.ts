@@ -19,22 +19,14 @@ import {
 	dragElements,
 	getResizeOffsetXY,
 	createShapeProperties,
+	PartialPickRequired,
 } from './Shape'
 import RectShape, { RectShapeProperties } from './Rect'
 export interface ImageShapeProperties extends properties {
+	radius: number | DOMPointInit | Iterable<number | DOMPointInit>
 	imageOrUri: string | HTMLImageElement | HTMLCanvasElement
-	x: number
-	y: number
-	width: number
-	height: number
 }
-export function renderArc(
-	context: Path2D | CanvasRenderingContext2D,
-	center: point,
-	radius: number,
-): void {
-	context.arc(center.x, center.y, radius, 0, Math.PI * 2, true)
-}
+
 export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	// firstPoint!: point
 	static key = 8
@@ -43,57 +35,80 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	rectBounding!: InstanceType<typeof RectShape>
 	maybeTransformHandleType: MaybeTransformHandleType = false
 	private image!: HTMLImageElement | HTMLCanvasElement
-	constructor(userOptions: ImageShapeProperties) {
-		super()
+	constructor(
+		userOptions: PartialPickRequired<ImageShapeProperties, 'imageOrUri'>,
+	) {
+		const data = createShapeProperties<ImageShapeProperties>(
+			userOptions,
+			ImageShape,
+		)
+		super(data)
+		// 入参是可选的
+		// data 是必须有的
+		this.data = data
+		this.initImageData()
+	}
 
-		this.data = createShapeProperties<ImageShapeProperties>({
-			...userOptions,
-			key: 8,
-		})
+	async initImageData() {
 		const { imageOrUri } = this.data
-		const setInitData = (img: HTMLImageElement | HTMLCanvasElement) => {
-			const { width, height } = img
-			this.data.width = this.data.width || width
-			this.data.height = this.data.height || height
-			this.image = img
-			this.data.imageOrUri = this.getSrc()
-			this.rectBounding = new RectShape(
-				createShapeProperties<RectShapeProperties>({
-					key: 11,
+
+		if (!this.image) {
+			this.image =
+				typeof imageOrUri === 'string'
+					? await createImage(imageOrUri)
+					: (imageOrUri as HTMLImageElement)
+		}
+		this.data.imageOrUri = this.getImageSrc(this.image)
+		const { width, height } = this.image
+		this.data.width = this.data.width || width
+		this.data.height = this.data.height || height
+		this.rectBounding = new RectShape(
+			createShapeProperties<RectShapeProperties>(
+				{
 					x: this.data.x,
 					y: this.data.y,
 					width: this.data.width,
 					height: this.data.width,
 					isAuxiliary: true,
-					color: '#000',
+					strokeStyle: '#6965db',
 					lineWidth: 1,
-					radius: 4,
-					isDash: true,
-				}),
-			)
-			this.getSourceRect()
-			this.pointerDownState = this.initPointerDownState()
-		}
-		if (typeof imageOrUri === 'string') {
-			createImage(imageOrUri).then((e) => {
-				setInitData(e)
-			})
-		} else {
-			// 除非通过事件 把所有格promise 传过去
-			// 组成一个大同时加载  加载完成之后在触发  在外层触发render
-			setInitData(imageOrUri)
-		}
+					fill: false,
+					radius: 0,
+				},
+				RectShape,
+			),
+		)
+		this.getSourceRect()
+		this.pointerDownState = this.initPointerDownState()
 	}
-	getSrc() {
-		if (this.image) {
-			if ('toDataURL' in this.image) {
-				return this.image.toDataURL()
+	// 生成历史记录-序列化的时候 imgDom 会被干掉- 所以存起来的必须是 uri
+	getImageSrc(image?: HTMLImageElement | HTMLCanvasElement | string) {
+		if (typeof image === 'string') {
+			return image
+		}
+		if (image) {
+			if ('toDataURL' in image) {
+				return image.toDataURL()
 			} else {
-				return this.image.src
+				return image.src
 			}
 		} else {
 			return ''
 		}
+	}
+	setData(data: Partial<ImageShapeProperties>): this {
+		const oldUri = this.getImageSrc(this.data.imageOrUri)
+
+		super.setData(data)
+		const newUri = this.getImageSrc(this.data.imageOrUri)
+
+		if (newUri !== oldUri) {
+			this.initImageData()
+		} else {
+			this.data.imageOrUri = newUri
+		}
+
+		return this
 	}
 
 	initPointerDownState(p = { x: 0, y: 0 }) {
@@ -111,11 +126,11 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		const { width, height, x, y } = this.data
 		this.limitValue = getRectLimitValue({ x, y }, width, height, this.threshold)
 		const rect = getLimit2Rect(this.limitValue)
-		this.rectBounding.setData(rect).getSourceRect()
+		this.rectBounding?.setData(rect).getSourceRect()
 	}
 	auxiliary(ctx: CanvasRenderingContext2D) {
 		this.rectBounding.drawAttributeInit(ctx)
-		this.rectBounding.roundRect(ctx)
+		this.rectBounding.draw(ctx)
 		this.transformHandles = this.getTransformHandles(
 			this.rectBounding.limitValue,
 			0,
@@ -129,14 +144,27 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 		)
 		this.renderTransformHandles(ctx, this.transformHandles, 0)
 	}
-	draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
+	async draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
 		// this.drawAttributeInit(ctx)
 		// 取走一个点 能够拿到x，y
 		// 所谓缓存都是用 canvas  再画一个放在 一个
-		let img = this.image
-		const { x, y, width, height } = this.data
 
-		ctx.drawImage(img, x, y, width, height)
+		if (!this.image) {
+			await this.initImageData()
+		}
+
+		const { x, y, width, height, radius } = this.data
+
+		if (radius) {
+			ctx.save()
+			ctx.beginPath()
+			ctx.roundRect(x, y, width, height, radius)
+			ctx.clip() // 将绘制区域限制在圆角矩形内
+			ctx.drawImage(this.image, x, y, width, height)
+			ctx.restore()
+		} else {
+			ctx.drawImage(this.image, x, y, width, height)
+		}
 
 		if (this.isEdit) {
 			this.auxiliary(ctx)
@@ -145,10 +173,15 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 	initPending(ctx: CanvasRenderingContext2D, p: newPoint, e: EventHub) {
 		// 可以做一些特别判断`
 		// start
+		this.pointerDownState = this.initPointerDownState(p)
+
 		if (this.isEdit) {
-			this.pointerDownState = this.initPointerDownState(p)
+			// 记录 当前点
+			// events.emit('clearCapturingCanvas');
+			this.draw(ctx)
 		}
-		this.draw(ctx)
+
+		// super.draw()
 	}
 	appendPoint(ctx: CanvasRenderingContext2D, p: newPoint, e: EventHub) {
 		// 如果离得很近 判断
@@ -171,10 +204,8 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 				dragElements(this.pointerDownState, this, p)
 			}
 			this.getSourceRect()
-			e.emit('clearCapturingCanvas')
-		} else {
-			e.emit('clearCapturingCanvas')
 		}
+		e.emit('clearCapturingCanvas')
 		this.draw(ctx)
 	}
 	endPendingPoint(
@@ -193,7 +224,7 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 
 	clone() {
 		// 可能会出现 还是原来那块地址
-		const o = new ImageShape({ ...this.data, imageOrUri: this.getSrc() })
+		const o = new ImageShape({ ...this.data })
 		return o
 	}
 	computeClick(p: point, events: InstanceType<typeof EventHub>): boolean {
@@ -201,11 +232,10 @@ export default class ImageShape extends BaseShape<ImageShapeProperties> {
 			const maybeTransformHandleType = this.resizeTest(p, this.transformHandles)
 			this.maybeTransformHandleType = maybeTransformHandleType
 			if (maybeTransformHandleType) {
-				this.pointerDownState.offset = getResizeOffsetXY(
-					maybeTransformHandleType,
-					this,
-					p,
-				)
+				this.pointerDownState = {
+					...(this.pointerDownState || {}),
+					offset: getResizeOffsetXY(maybeTransformHandleType, this, p),
+				}
 				return true
 			}
 		}

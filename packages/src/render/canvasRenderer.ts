@@ -18,7 +18,7 @@ import {
 	// computeBounding
 } from './SymbolCanvasRendener'
 import { model } from '../model/InkModel'
-import { Graphics } from './Symbols/Shape'
+import { Graphics, GraphicsIns } from './Symbols/Shape'
 
 function getPixelRatio(canvas?: HTMLCanvasElement) {
 	if (canvas) {
@@ -89,8 +89,8 @@ export interface canvasContext {
 	renderingCanvasContext: CanvasRenderingContext2D
 	capturingCanvas: HTMLCanvasElement
 	capturingCanvasContext: CanvasRenderingContext2D
-	disappearCanvas: HTMLCanvasElement
-	disappearCanvasContext: CanvasRenderingContext2D
+	// disappearCanvas: HTMLCanvasElement
+	// disappearCanvasContext: CanvasRenderingContext2D
 }
 
 // filledType 放到 originScreen 是最合适的
@@ -120,7 +120,7 @@ export function resizeContent(
 		filled = domStyle.filled
 		const styleProperty: Dictionary<string | number> = domStyle.styleProperty
 		for (let key in styleProperty) {
-			if ({}.hasOwnProperty.call(styleProperty, key)) {
+			if (Object.hasOwn(styleProperty, key)) {
 				;(domElement.style as any)[key] = styleProperty[key]
 			}
 		}
@@ -133,7 +133,7 @@ export function resizeContent(
 	const elements = [
 		context.renderingCanvas,
 		context.capturingCanvas,
-		context.disappearCanvas,
+		// context.disappearCanvas,
 	]
 	// 怎么适配 屏幕
 	//  第一次自己初始化的时候跑一遍    resize 都会跑一遍
@@ -196,11 +196,11 @@ export function attach(
 		'canvas',
 		'capture-canvas',
 	)
-	const disappearCanvas = createContainerInnerDom(
-		canvasContainer,
-		'canvas',
-		'disappear-canvas',
-	)
+	// const disappearCanvas = createContainerInnerDom(
+	// 	canvasContainer,
+	// 	'canvas',
+	// 	'disappear-canvas',
+	// )
 	const context: canvasContext = {
 		canvasContainer,
 		scale: 1,
@@ -225,10 +225,10 @@ export function attach(
 		) as CanvasRenderingContext2D,
 
 		// 消失笔
-		disappearCanvas,
-		disappearCanvasContext: disappearCanvas.getContext(
-			'2d',
-		) as CanvasRenderingContext2D,
+		// disappearCanvas,
+		// disappearCanvasContext: disappearCanvas.getContext(
+		// 	'2d',
+		// ) as CanvasRenderingContext2D,
 	}
 	return resizeContent(context, originScreen)
 }
@@ -400,7 +400,7 @@ export function drawModel(
 export function drawCurrentStroke(
 	context: canvasContext,
 	model: model,
-	stroker: Graphics | Graphics[],
+	stroker: GraphicsIns | GraphicsIns[],
 ) {
 	// console.log('==============================|||||||||||||||||||')
 	// 谁调用了我

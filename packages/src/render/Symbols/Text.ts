@@ -20,7 +20,6 @@ export interface TextProperties extends properties {
 	height: number
 	baseline: number
 	opacity: number
-	strokeColor: string // color
 	textAlign: string
 	isAuxiliary: boolean
 }
@@ -32,7 +31,6 @@ export default class TextShape extends BaseShape<TextProperties> {
 	rectBounding!: InstanceType<typeof RectShape>
 	prevText = ''
 	constructor(userOptions: TextProperties) {
-		super()
 		const defaultOptions = {
 			key: 9,
 			x: 0,
@@ -46,26 +44,30 @@ export default class TextShape extends BaseShape<TextProperties> {
 			textAlign: 'left',
 			isAuxiliary: false,
 		}
-		this.data = Object.assign(
-			createShapeProperties<TextProperties>(defaultOptions),
-			userOptions,
-			{
-				strokeColor: userOptions.color,
-			},
+		const data = createShapeProperties<TextProperties>(
+			{ ...defaultOptions, ...userOptions, fillStyle: userOptions.fillStyle },
+			TextShape,
 		)
+		super(data)
+
+		this.data = data
+
 		// 没有画的情况 怎么才能拿到宽高
 		if (!userOptions.isAuxiliary) {
 			this.rectBounding = new RectShape(
-				createShapeProperties<RectShapeProperties>({
-					...defaultOptions,
-					x: 0,
-					y: 0,
-					isAuxiliary: true,
-					color: '#000',
-					lineWidth: 1,
-					radius: 0,
-					isDash: true,
-				}),
+				createShapeProperties<RectShapeProperties>(
+					{
+						...defaultOptions,
+						x: 0,
+						y: 0,
+						isAuxiliary: true,
+						strokeStyle: '#6965db',
+						lineWidth: 1,
+						fill: false,
+						radius: 0,
+					},
+					RectShape,
+				),
 			)
 		}
 	}
@@ -118,7 +120,7 @@ export default class TextShape extends BaseShape<TextProperties> {
 			this.getSourceRect()
 			events.emit('clearCapturingCanvas')
 			this.drawAttributeInit(ctx)
-			this.data.path2d = undefined
+			this.data.path2d = null
 			this.draw(ctx)
 			this.auxiliary(ctx)
 			return
@@ -202,7 +204,7 @@ interface textElement {
 	height: number
 	baseline: number
 	opacity: number
-	strokeColor: string
+	fillStyle: string
 	textAlign: string
 }
 
@@ -240,7 +242,7 @@ const newTextElement = (
 			left: `${left}px`,
 			top: `${top}px`,
 			textAlign: updatedElement.textAlign,
-			color: updatedElement.strokeColor,
+			color: updatedElement.fillStyle,
 			opacity: updatedElement.opacity / 100,
 			filter: 'none',
 		})
@@ -352,7 +354,6 @@ const renderText = (
 	const font = context.font
 	context.font = getFontString(element)
 	const fillStyle = context.fillStyle
-	context.fillStyle = element.strokeColor
 	const textAlign = context.textAlign
 	/* CanvasTextAlign */
 	context.textAlign = element.textAlign as CanvasTextAlign

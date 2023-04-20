@@ -1,6 +1,6 @@
 import { limitValue, point, newPoint, EventHub } from '../../utils'
 // import Edit from './../../index'
-import { properties, BaseShape } from './Shape'
+import { properties, BaseShape, createShapeProperties } from './Shape'
 export interface RubberShapeProperties extends properties {
 	center: point
 	radius: number
@@ -12,13 +12,18 @@ export default class RubberShape extends BaseShape<RubberShapeProperties> {
 	static cache = true
 	name = '橡皮'
 	constructor(userOptions: RubberShapeProperties) {
-		super()
 		const defaultOptions = {
 			key: 7,
 			radius: 10,
 			available: false,
 		}
-		this.data = Object.assign(defaultOptions, userOptions)
+		const data = createShapeProperties(
+			{...defaultOptions, ...userOptions},
+			RubberShape,
+		)
+		super(data)
+
+		this.data = data
 	}
 
 	draw(ctx: CanvasRenderingContext2D, ignoreCache = false) {
